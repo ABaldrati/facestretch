@@ -1,0 +1,26 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "b3b41b19c437bbdbc0bc92da47978dec3abef780ae56d1d8cec11f44848e1cbc"
+        },
+        "pipfile-spec": 6,
+        "requires": {},
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "dlib": {
+            "hashes": [
+                "sha256:a3f5070df590c3f510dde2f4c84b1b20e3ef64a02932ed657da490834ecac7e4"
+            ],
+            "index": "pypi",
+            "version": "==19.20.0"
+        }
+    },
+    "develop": {}
+}
