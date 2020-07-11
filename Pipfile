@@ -1,5 +1,9 @@
 [packages]
 dlib = "*"
+imutils = "*"
+numpy = "*"
+opencv-python = "*"
+
 
 [dev-packages]
 
