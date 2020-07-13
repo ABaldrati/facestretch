@@ -7,7 +7,8 @@ import cv2
 import dlib
 import numpy as np
 from imutils import face_utils
-from metric_learn import MMC, ITML
+import matplotlib.pyplot as plt
+from metric_learn import MMC, ITML, LMNN, MLKR, LFDA, NCA
 import pickle
 from joblib import dump, load
 
@@ -61,7 +62,7 @@ def extract_landmarks(image) -> List[np.ndarray]:
 
 
 def parse_image_path(path: Path):
-    return path.name.split("_")
+    return path.stem.split("_")
 
 
 def generate_training_pairs(path: Path):
@@ -171,12 +172,102 @@ def add_images_pairings(paths_indices_mapping, similar_images, training_pairs_in
     return training_pairs_indices, training_pairs_labels
 
 
-def main():
-    landmarks_matrix, training_pairs_indices, training_pairs_labels = generate_training_pairs(Path("dataset").resolve())
-    model = ITML(preprocessor=landmarks_matrix)
-    model.fit(training_pairs_indices, training_pairs_labels)
+def generate_training_supervised_dataset_categorical(path: Path):
+    # This code assumes that each image in the training path has only one face in it
 
-    dump(model, 'model_ITML.joblib')
+    landmarks_matrix = np.empty((0, 68 * 2))
+    # training_pairs_labels = ["neutro", "occhiolinodx", "occhiolinosx", "cruccio", "sorriso", "sorrisino", "bacio",
+    #                          "gengive"]
+    training_paris_labels = []
+    training_paris_labels = np.array(training_paris_labels, dtype="str")
+
+    for image_path in sorted(path.iterdir(), key=lambda p: (
+            p.name.split("_")[:-1], 101 if "neutro" in p.name else int(p.stem.split("_")[-1]))):
+        image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+
+        landmarks_list = extract_landmarks(image)
+
+        if not landmarks_list:
+            raise Exception(f"landmarks not found in image ({image_path})")
+
+        for landmarks in landmarks_list:  # `landmarks_list` should contain only one element to properly populate `paths_indices_mapping`
+            normalized_landmarks = normalize_landmarks(landmarks)
+
+            landmarks_matrix = np.vstack([landmarks_matrix, normalized_landmarks.flatten()])
+            category = parse_image_path(image_path)[1]
+            training_paris_labels = np.append(training_paris_labels, category)
+
+    return landmarks_matrix, training_paris_labels
+
+
+def generate_training_supervised_dataset_regression(path: Path):
+    # This code assumes that each image in the training path has only one face in it
+
+    landmarks_matrix = np.empty((0, 68 * 2))
+    # training_pairs_labels = ["neutro", "occhiolinodx", "occhiolinosx", "cruccio", "sorriso", "sorrisino", "bacio",
+    #                          "gengive"]
+    training_paris_labels = []
+    training_paris_labels = np.array(training_paris_labels, dtype=np.int8)
+
+    for image_path in sorted(path.iterdir(), key=lambda p: (
+            p.name.split("_")[:-1], 101 if "neutro" in p.name else int(p.stem.split("_")[-1]))):
+        image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+
+        landmarks_list = extract_landmarks(image)
+
+        if not landmarks_list:
+            raise Exception(f"landmarks not found in image ({image_path})")
+
+        for landmarks in landmarks_list:  # `landmarks_list` should contain only one element to properly populate `paths_indices_mapping`
+            normalized_landmarks = normalize_landmarks(landmarks)
+
+            landmarks_matrix = np.vstack([landmarks_matrix, normalized_landmarks.flatten()])
+            deformation_index = parse_image_path(image_path)[2]
+            if type(deformation_index) is str:
+                deformation_index = 0
+            training_paris_labels = np.append(training_paris_labels, deformation_index / 100)
+
+    return landmarks_matrix, training_paris_labels
+
+
+def generate_images_from_video(src_path: Path, dst_folder_path: Path):
+    subject, category = parse_image_path(src_path)
+    video = cv2.VideoCapture(str(src_path))
+    num_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_density = 100 / (num_frames - 1)
+    current_frame = 0
+    while video.isOpened():
+        success, frame = video.read()
+        if not success:
+            break
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB, frame)
+        # cv2.imwrite(str(dst_folder_path.joinpath(f"{subject}_{category}_{int(current_frame)}.jpg")), frame)
+        if category != "neutro":
+            plt.imsave(str(dst_folder_path.joinpath(f"{subject}_{category}_{int(round(current_frame))}.png")), frame)
+        else:
+            plt.imsave(str(dst_folder_path.joinpath(f"{subject}_{category}{int(current_frame)}_{0}.png")), frame)
+        # current_frame = min(current_frame + frame_density, 100.)
+        current_frame += frame_density
+
+
+def generate_video_dataset(src_path: Path):
+    dst_folder_path = src_path.parent.joinpath("dataset_video_images")
+    for video in src_path.iterdir():
+        generate_images_from_video(video, dst_folder_path)
+
+
+def main():
+    generate_video_dataset(Path("dataset_video").resolve())
+
+
+    landmarks_matrix, training_pairs_labels = generate_training_supervised_dataset_regression(
+        Path("dataset_video_images").resolve())
+    model = MLKR()
+    model.fit(landmarks_matrix, training_pairs_labels)
+    # model = ITML(preprocessor=landmarks_matrix)
+    # model.fit(training_pairs_indices, training_pairs_labels)
+
+    dump(model, 'model_MLKR_video.joblib')
 
 
 if __name__ == '__main__':

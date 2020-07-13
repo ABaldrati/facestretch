@@ -4,6 +4,7 @@ imutils = "*"
 numpy = "*"
 opencv-python = "*"
 metric-learn = "*"
+matplotlib = "*"
 
 [dev-packages]
 
