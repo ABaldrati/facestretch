@@ -7,6 +7,9 @@ import cv2
 import dlib
 import numpy as np
 from imutils import face_utils
+from metric_learn import MMC, ITML
+import pickle
+from joblib import dump, load
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
@@ -71,7 +74,7 @@ def generate_training_pairs(path: Path):
     training_pairs_labels = np.empty((0, 2), dtype=np.int16)
 
     for image_path in sorted(path.iterdir(), key=lambda p: (
-    p.name.split("_")[:-1], 101 if "neutro" in p.name else int(p.stem.split("_")[-1]))):
+            p.name.split("_")[:-1], 101 if "neutro" in p.name else int(p.stem.split("_")[-1]))):
         image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
 
         landmarks_list = extract_landmarks(image)
@@ -111,20 +114,15 @@ def generate_training_pairs(path: Path):
             subject_images = list(
                 sorted(filter(lambda i: subject in i.name and "neutro" not in i.name, category_images),
                        key=lambda p: (
-                       p.name.split("_")[:-1], 101 if "neutro" in p.name else int(p.stem.split("_")[-1]))))
+                           p.name.split("_")[:-1], 101 if "neutro" in p.name else int(p.stem.split("_")[-1]))))
             training_pairs_indices, training_pairs_labels = add_images_pairings(paths_indices_mapping, subject_images,
                                                                                 training_pairs_indices,
                                                                                 training_pairs_labels, 1,
                                                                                 similar_pairs)
 
             images_25 = list(filter(lambda i: "25" in i.name, subject_images))
-            print("subject_images", subject_images)
-            print("neuter_images:", list(filter(lambda i: subject in i.name, neuter_images)))
-            print("images_25:", list(images_25))
-            print("\n")
             for neuter_image in filter(lambda i: subject in i.name, neuter_images):
                 for image_25 in images_25:
-                    print(f"adding {neuter_image.name}, {image_25.name}")
                     training_pairs_indices, training_pairs_labels = add_images_pairings(paths_indices_mapping,
                                                                                         [neuter_image, image_25],
                                                                                         training_pairs_indices,
@@ -174,7 +172,11 @@ def add_images_pairings(paths_indices_mapping, similar_images, training_pairs_in
 
 
 def main():
-    generate_training_pairs(Path("dataset").resolve())
+    landmarks_matrix, training_pairs_indices, training_pairs_labels = generate_training_pairs(Path("dataset").resolve())
+    model = ITML(preprocessor=landmarks_matrix)
+    model.fit(training_pairs_indices, training_pairs_labels)
+
+    dump(model, 'model_ITML.joblib')
 
 
 if __name__ == '__main__':

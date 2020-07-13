@@ -3,7 +3,7 @@ dlib = "*"
 imutils = "*"
 numpy = "*"
 opencv-python = "*"
-
+metric-learn = "*"
 
 [dev-packages]
 

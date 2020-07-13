@@ -6,19 +6,26 @@ import argparse
 import imutils
 import dlib
 import cv2
+from joblib import dump, load
+from main import normalize_landmarks, extract_landmarks
 
-# def rect_to_bb(rect):
-#   # take a bounding predicted by dlib and convert it
-#   # to the format (x, y, w, h) as we would normally do
-#   # with OpenCV
-#   x = rect.left()
-#   y = rect.top()
-#   w = rect.right() - x
-#   h = rect.bottom() - y
-#
-#   # return a tuple of (x, y, w, h)
-#   return (x, y, w, h)
-from main import normalize_landmarks
+mmc = load("model.joblib")
+reference_image = cv2.imread("dataset/giova_sorrisino_100.jpg")
+reference_landmark = extract_landmarks(reference_image)
+norm_ref_landmark = normalize_landmarks(reference_landmark[0]).flatten()
+
+
+def rect_to_bb(rect):
+    # take a bounding predicted by dlib and convert it
+    # to the format (x, y, w, h) as we would normally do
+    # with OpenCV
+    x = rect.left()
+    y = rect.top()
+    w = rect.right() - x
+    h = rect.bottom() - y
+
+    # return a tuple of (x, y, w, h)
+    return (x, y, w, h)
 
 
 def shape_to_np(shape, dtype="int"):
@@ -94,19 +101,22 @@ while rval:
         box = np.int0(box)
 
         cv2.drawContours(frame, [box], 0, (0, 0, 255), 2)
-        # cv2.putText(frame, f"angle {angle}", (int(x) - 10, int(y) - 10),
-        #             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
 
         if key == ord('q'):
             rval = False
-        elif key != ord('c'):
-            normalized_landmarks = normalize_landmarks(shape)
 
-            for (x, y) in normalized_landmarks:
-                cv2.circle(frame, (int(x * 250 + 150), int(y * 250 + 150)), 1, (0, 255, 255), -1)
+        normalized_landmarks = normalize_landmarks(shape).flatten()
 
-        cv2.imshow("FaceLandmarks", frame)
+        distance = mmc.decision_function([[norm_ref_landmark, normalized_landmarks]])
+        yes_no = mmc.predict([[norm_ref_landmark, normalized_landmarks]])
+        cv2.putText(frame, f"distance {distance}, {yes_no}", (int(x) - 10, int(y) - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        # for (x, y) in normalized_landmarks:
+        #     cv2.circle(frame, (int(x * 250 + 150), int(y * 250 + 150)), 1, (0, 255, 255), -1)
+
+    cv2.imshow("FaceLandmarks", frame)
 
 cap.release()
 cv2.destroyAllWindows()
