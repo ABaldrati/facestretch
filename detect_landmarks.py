@@ -9,8 +9,8 @@ import cv2
 from joblib import dump, load
 from main import normalize_landmarks, extract_landmarks
 
-model = load("model_MMC.joblib")
-reference_image = cv2.imread("dataset_video_images/giova_gengive_100.png")
+model = load("model_SDML.joblib")
+reference_image = cv2.imread("dataset_video_images/albe_sorriso_100.png")
 reference_landmark = extract_landmarks(reference_image)
 norm_ref_landmark = normalize_landmarks(reference_landmark[0]).flatten()
 

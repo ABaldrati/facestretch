@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from imutils import face_utils
 from joblib import dump
-from metric_learn import MMC
+from metric_learn import MMC, ITML, SDML
 from more_itertools import windowed
 
 detector = dlib.get_frontal_face_detector()
@@ -66,6 +66,73 @@ def parse_image_path(path: Path):
     return path.stem.split("_")
 
 
+def interpolate_landmarks(base_landmarks, target_landmarks, rate):
+    return (1 - rate) * base_landmarks + rate * target_landmarks
+
+
+def generate_interpolated_dataset(src_path: Path, rates: List[int]):
+    if 0 in rates:
+        rates.remove(0)
+    if 1 not in rates:
+        rates.append(1)
+
+    action_images = filter(lambda i: "neutro" not in i.name, src_path.iterdir())
+
+    landmarks_matrix = np.empty((0, 68 * 2))
+    landmark_indices_mapping = {}
+    training_pairs_indices = np.empty((0, 2), dtype=np.int16)
+    training_pairs_labels = np.empty((0, 1), dtype=np.int16)
+
+    neuter_landmarks = {}
+
+    subjects = set(map(lambda i: parse_image_path(i)[0], src_path.iterdir()))
+    actions = set(map(lambda i: parse_image_path(i)[1], src_path.iterdir()))
+    actions.remove("neutro")
+
+    for subject in subjects:
+        subject_neuter_image_path = src_path.joinpath(f"{subject}_neutro.png")
+        subject_neuter_image = cv2.imread(str(subject_neuter_image_path), cv2.IMREAD_UNCHANGED)
+        neuter_subject_landmarks = normalize_landmarks(extract_landmarks(subject_neuter_image)[0]).flatten()
+
+        neuter_landmarks[subject] = neuter_subject_landmarks
+        landmarks_matrix = np.vstack([landmarks_matrix, neuter_subject_landmarks])
+        landmark_indices_mapping[f"{subject}_neutro"] = landmarks_matrix.shape[0] - 1
+
+    for image_path in action_images:
+        subject, action = parse_image_path(image_path)
+        subject_action_image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+        action_subject_landmarks = normalize_landmarks(extract_landmarks(subject_action_image)[0]).flatten()
+
+        neuter_subject_landmarks = neuter_landmarks[subject]
+
+        for rate in rates:
+            interpolated_subject_landmarks = interpolate_landmarks(neuter_subject_landmarks, action_subject_landmarks, rate)
+            landmarks_matrix = np.vstack([landmarks_matrix, interpolated_subject_landmarks])
+            landmark_indices_mapping[f"{subject}_{action}_{rate}"] = landmarks_matrix.shape[0] - 1
+
+    for action in actions:
+        for rate in rates:
+            for subj1, subj2 in itertools.combinations(subjects, 2):
+                subj1_landmarks_index = landmark_indices_mapping[f"{subj1}_{action}_{rate}"]
+                subj2_landmarks_index = landmark_indices_mapping[f"{subj2}_{action}_{rate}"]
+
+                training_pairs_indices = np.vstack([training_pairs_indices,
+                                                    np.array([subj1_landmarks_index, subj2_landmarks_index])])
+                training_pairs_labels = np.append(training_pairs_labels, 1)
+
+    for act1, act2 in itertools.combinations(actions, 2):
+        for rate in rates:
+            for subj1, subj2 in itertools.combinations(subjects, 2):
+                subj1_landmarks_index = landmark_indices_mapping[f"{subj1}_{act1}_{rate}"]
+                subj2_landmarks_index = landmark_indices_mapping[f"{subj2}_{act2}_{rate}"]
+
+                training_pairs_indices = np.vstack([training_pairs_indices,
+                                                    np.array([subj1_landmarks_index, subj2_landmarks_index])])
+                training_pairs_labels = np.append(training_pairs_labels, -1)
+
+    return landmarks_matrix, training_pairs_indices, training_pairs_labels
+
+
 def generate_training_pairs(path: Path):
     # This code assumes that each image in the training path has only one face in it
 
@@ -73,7 +140,7 @@ def generate_training_pairs(path: Path):
     landmarks_matrix = np.empty((0, 68 * 2))
 
     training_pairs_indices = np.empty((0, 2), dtype=np.int16)
-    training_pairs_labels = np.empty((0, 2), dtype=np.int16)
+    training_pairs_labels = np.empty((0, 1), dtype=np.int16)
 
     for image_path in sorted(path.iterdir(), key=lambda p: (
             p.name.split("_")[:-1], 101 if "neutro" in p.name else int(p.stem.split("_")[-1]))):
@@ -277,8 +344,8 @@ def main():
     if not saved_landmarks_matrix.exists() or not saved_training_pairs_indices.exists() or not saved_training_pairs_labels.exists():
         print("Generating dataset...")
 
-        landmarks_matrix, training_pairs_indices, training_pairs_labels = generate_training_pairs(
-            Path("dataset_video_images").resolve())
+        landmarks_matrix, training_pairs_indices, training_pairs_labels = generate_interpolated_dataset(
+            Path("dataset_interpolated_images").resolve(), [0.5, 1])
 
         np.save(str(saved_landmarks_matrix), landmarks_matrix)
         np.save(str(saved_training_pairs_indices), training_pairs_indices)
@@ -290,12 +357,12 @@ def main():
         training_pairs_labels = np.load(saved_training_pairs_labels)
 
     print("Starting training...")
-    model = MMC(verbose=True, preprocessor=landmarks_matrix, convergence_threshold=1e-5)
+    model = SDML(verbose=True, preprocessor=landmarks_matrix, prior="identity", balance_param=0.4) #, convergence_threshold=1e-5)
     model.fit(training_pairs_indices, training_pairs_labels)
     # model = ITML(preprocessor=landmarks_matrix)
     # model.fit(training_pairs_indices, training_pairs_labels)
 
-    dump(model, 'model_MMC.joblib')
+    dump(model, 'model_SDML.joblib')
 
 
 if __name__ == '__main__':
