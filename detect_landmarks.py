@@ -9,8 +9,8 @@ import cv2
 from joblib import dump, load
 from main import normalize_landmarks, extract_landmarks
 
-model = load("model_MLKR_video.joblib")
-reference_image = cv2.imread("dataset_video_images/albe_neutro0_0.png")
+model = load("model_MMC.joblib")
+reference_image = cv2.imread("dataset_video_images/giova_gengive_100.png")
 reference_landmark = extract_landmarks(reference_image)
 norm_ref_landmark = normalize_landmarks(reference_landmark[0]).flatten()
 
@@ -110,8 +110,8 @@ while rval:
 
         distance_func = model.get_metric()
         distance = distance_func(norm_ref_landmark, normalized_landmarks)
-        #yes_no = model.predict([[norm_ref_landmark, normalized_landmarks]])
-        cv2.putText(frame, f"distance {distance}", (int(x) - 10, int(y) - 100),
+        yes_no = model.predict([[norm_ref_landmark, normalized_landmarks]])
+        cv2.putText(frame, f"distance {distance:.2f} {yes_no}", (int(x) - 10, int(y) - 100),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
 
         # for (x, y) in normalized_landmarks:

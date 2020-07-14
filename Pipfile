@@ -5,6 +5,7 @@ numpy = "*"
 opencv-python = "*"
 metric-learn = "*"
 matplotlib = "*"
+more-itertools = "*"
 
 [dev-packages]
 
