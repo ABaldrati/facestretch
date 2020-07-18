@@ -153,6 +153,19 @@ def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[
                                                     np.array([subj1_landmarks_index, subj2_landmarks_index])])
                 training_pairs_labels = np.append(training_pairs_labels, -1)
 
+    for action in actions:
+        for rate in rates:
+            for subj1, subj2 in itertools.combinations(subjects, 2):
+                subj1_landmarks_index = landmark_indices_mapping.get(f"{subj1}_{action}_{rate}")
+                subj2_landmarks_index = landmark_indices_mapping.get(f"{subj2}_neutro")
+
+                if not (subj1_landmarks_index and subj2_landmarks_index):
+                    continue
+
+                training_pairs_indices = np.vstack([training_pairs_indices,
+                                                    np.array([subj1_landmarks_index, subj2_landmarks_index])])
+                training_pairs_labels = np.append(training_pairs_labels, -1)
+
     return landmarks_matrix, training_pairs_indices, training_pairs_labels
 
 
