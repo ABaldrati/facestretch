@@ -1,5 +1,7 @@
 # This code is based on https://www.pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python/
 # import the necessary packages
+from pathlib import Path
+
 from imutils import face_utils
 import numpy as np
 import argparse
@@ -7,12 +9,39 @@ import imutils
 import dlib
 import cv2
 from joblib import dump, load
-from main import normalize_landmarks, extract_landmarks
+from tqdm import tqdm
+
+from main import normalize_landmarks, extract_landmarks, parse_image_path
 
 model = load("model_SDML.joblib")
-reference_image = cv2.imread("dataset_video_images/albe_sorriso_100.png")
-reference_landmark = extract_landmarks(reference_image)
-norm_ref_landmark = normalize_landmarks(reference_landmark[0]).flatten()
+norm_ref_landmark = None
+
+
+def get_action_reference_landmarks(dataset_path: Path, action):
+    action_images = list(filter(lambda i: action in i.name, dataset_path.iterdir()))
+
+    action_landmarks = []
+    with tqdm(action_images) as t:
+        for image in t:
+            t.set_postfix_str(str(image), refresh=True)
+            subject, _ = parse_image_path(image)
+            neuter_landmarks_path = list(dataset_path.glob(f"{subject}_neutro*"))[0]
+            neuter_image = cv2.imread(str(neuter_landmarks_path), cv2.IMREAD_UNCHANGED)
+            neuter_image_landmarks = extract_landmarks(neuter_image)
+
+            image = cv2.imread(str(image), cv2.IMREAD_UNCHANGED)
+            image_landmarks = extract_landmarks(image)
+
+            if not (image_landmarks and neuter_image_landmarks):
+                continue
+
+            neuter_landmarks = normalize_landmarks(neuter_image_landmarks[0])
+            action_landmarks.append(normalize_landmarks(image_landmarks[0]) - neuter_landmarks)
+
+    return sum(action_landmarks) / len(action_landmarks)
+
+
+action_reference_landmarks = get_action_reference_landmarks(Path("dataset_new"), "occhiolinodx").flatten()
 
 
 def rect_to_bb(rect):
@@ -106,16 +135,22 @@ while rval:
         if key == ord('q'):
             rval = False
 
-        normalized_landmarks = normalize_landmarks(shape).flatten()
+        if norm_ref_landmark is None:
+            if key == ord("s"):
+                reference_landmark = extract_landmarks(frame)
+                norm_ref_landmark = normalize_landmarks(reference_landmark[0]).flatten()
+                print("Successfully saved reference neuter image")
+        else:
+            normalized_landmarks = normalize_landmarks(shape).flatten() - norm_ref_landmark
 
-        distance_func = model.get_metric()
-        distance = distance_func(norm_ref_landmark, normalized_landmarks)
-        yes_no = model.predict([[norm_ref_landmark, normalized_landmarks]])
-        cv2.putText(frame, f"distance {distance:.2f} {yes_no}", (int(x) - 10, int(y) - 100),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
+            distance_func = model.get_metric()
+            distance = distance_func(action_reference_landmarks, normalized_landmarks)
+            yes_no = model.predict([[action_reference_landmarks, normalized_landmarks]])
+            cv2.putText(frame, f"distance {distance:.2f} {yes_no}", (int(x) - 10, int(y) - 100),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
 
-        # for (x, y) in normalized_landmarks:
-        #     cv2.circle(frame, (int(x * 250 + 150), int(y * 250 + 150)), 1, (0, 255, 255), -1)
+            # for (x, y) in normalized_landmarks:
+            #     cv2.circle(frame, (int(x * 250 + 150), int(y * 250 + 150)), 1, (0, 255, 255), -1)
 
     cv2.imshow("FaceLandmarks", frame)
 
