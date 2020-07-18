@@ -131,16 +131,15 @@ while rval:
 
         cv2.drawContours(frame, [box], 0, (0, 0, 255), 2)
 
-
         if key == ord('q'):
             rval = False
 
-        if norm_ref_landmark is None:
-            if key == ord("s"):
-                reference_landmark = extract_landmarks(frame)
-                norm_ref_landmark = normalize_landmarks(reference_landmark[0]).flatten()
-                print("Successfully saved reference neuter image")
-        else:
+        if key == ord("s"):
+            reference_landmark = extract_landmarks(frame)
+            norm_ref_landmark = normalize_landmarks(reference_landmark[0]).flatten()
+            print("Successfully saved reference neuter image")
+
+        if norm_ref_landmark is not None:
             normalized_landmarks = normalize_landmarks(shape).flatten() - norm_ref_landmark
 
             distance_func = model.get_metric()
