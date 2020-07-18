@@ -1,5 +1,6 @@
 import itertools
 import operator
+import sys
 from pathlib import Path
 from random import sample
 from typing import List
@@ -70,7 +71,7 @@ def interpolate_landmarks(base_landmarks, target_landmarks, rate):
     return (1 - rate) * base_landmarks + rate * target_landmarks
 
 
-def generate_interpolated_dataset(src_path: Path, rates: List[int]):
+def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[int]):
     if 0 in rates:
         rates.remove(0)
     if 1 not in rates:
@@ -90,31 +91,50 @@ def generate_interpolated_dataset(src_path: Path, rates: List[int]):
     actions.remove("neutro")
 
     for subject in subjects:
-        subject_neuter_image_path = src_path.joinpath(f"{subject}_neutro.png")
+        print(f"Importing subject {subject}")
+        subject_neuter_image_path = list(src_path.glob(f"{subject}_neutro.*"))[0]
         subject_neuter_image = cv2.imread(str(subject_neuter_image_path), cv2.IMREAD_UNCHANGED)
-        neuter_subject_landmarks = normalize_landmarks(extract_landmarks(subject_neuter_image)[0]).flatten()
+        landmarks_found = extract_landmarks(subject_neuter_image)
+
+        if not landmarks_found:
+            print(f"Neuter landmarks not found for subject {subject}. Skipping...", file=sys.stderr)
+            action_images = list(filter(lambda i: subject not in i.name, list(action_images)))
+
+            continue
+
+        neuter_subject_landmarks = normalize_landmarks(landmarks_found[0]).flatten()
+        print(f"Extracted landmarks from {subject_neuter_image_path}")
 
         neuter_landmarks[subject] = neuter_subject_landmarks
         landmarks_matrix = np.vstack([landmarks_matrix, neuter_subject_landmarks])
         landmark_indices_mapping[f"{subject}_neutro"] = landmarks_matrix.shape[0] - 1
 
     for image_path in action_images:
+        print(f"Processing {image_path}")
         subject, action = parse_image_path(image_path)
         subject_action_image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
-        action_subject_landmarks = normalize_landmarks(extract_landmarks(subject_action_image)[0]).flatten()
+        landmarks_found = extract_landmarks(subject_action_image)
 
+        if not landmarks_found:
+            print(f"Action landmarks ({action}) not found for subject {subject}. Skipping...", file=sys.stderr)
+            continue
+
+        action_subject_landmarks = normalize_landmarks(landmarks_found[0]).flatten()
         neuter_subject_landmarks = neuter_landmarks[subject]
 
         for rate in rates:
-            interpolated_subject_landmarks = interpolate_landmarks(neuter_subject_landmarks, action_subject_landmarks, rate)
+            interpolated_subject_landmarks = interpolate_landmarks(neuter_subject_landmarks, action_subject_landmarks, rate) - neuter_subject_landmarks
             landmarks_matrix = np.vstack([landmarks_matrix, interpolated_subject_landmarks])
             landmark_indices_mapping[f"{subject}_{action}_{rate}"] = landmarks_matrix.shape[0] - 1
 
     for action in actions:
         for rate in rates:
             for subj1, subj2 in itertools.combinations(subjects, 2):
-                subj1_landmarks_index = landmark_indices_mapping[f"{subj1}_{action}_{rate}"]
-                subj2_landmarks_index = landmark_indices_mapping[f"{subj2}_{action}_{rate}"]
+                subj1_landmarks_index = landmark_indices_mapping.get(f"{subj1}_{action}_{rate}")
+                subj2_landmarks_index = landmark_indices_mapping.get(f"{subj2}_{action}_{rate}")
+
+                if not (subj1_landmarks_index and subj2_landmarks_index):
+                    continue
 
                 training_pairs_indices = np.vstack([training_pairs_indices,
                                                     np.array([subj1_landmarks_index, subj2_landmarks_index])])
@@ -123,8 +143,11 @@ def generate_interpolated_dataset(src_path: Path, rates: List[int]):
     for act1, act2 in itertools.combinations(actions, 2):
         for rate in rates:
             for subj1, subj2 in itertools.combinations(subjects, 2):
-                subj1_landmarks_index = landmark_indices_mapping[f"{subj1}_{act1}_{rate}"]
-                subj2_landmarks_index = landmark_indices_mapping[f"{subj2}_{act2}_{rate}"]
+                subj1_landmarks_index = landmark_indices_mapping.get(f"{subj1}_{act1}_{rate}")
+                subj2_landmarks_index = landmark_indices_mapping.get(f"{subj2}_{act2}_{rate}")
+
+                if not (subj1_landmarks_index and subj2_landmarks_index):
+                    continue
 
                 training_pairs_indices = np.vstack([training_pairs_indices,
                                                     np.array([subj1_landmarks_index, subj2_landmarks_index])])
@@ -133,7 +156,7 @@ def generate_interpolated_dataset(src_path: Path, rates: List[int]):
     return landmarks_matrix, training_pairs_indices, training_pairs_labels
 
 
-def generate_training_pairs(path: Path):
+def generate_training_weakly_supervised(path: Path):
     # This code assumes that each image in the training path has only one face in it
 
     paths_indices_mapping = {}
@@ -344,8 +367,8 @@ def main():
     if not saved_landmarks_matrix.exists() or not saved_training_pairs_indices.exists() or not saved_training_pairs_labels.exists():
         print("Generating dataset...")
 
-        landmarks_matrix, training_pairs_indices, training_pairs_labels = generate_interpolated_dataset(
-            Path("dataset_interpolated_images").resolve(), [0.5, 1])
+        landmarks_matrix, training_pairs_indices, training_pairs_labels = generate_weakly_supervised_interpolated_dataset(
+            Path("dataset_new").resolve(), [0.5, 1])
 
         np.save(str(saved_landmarks_matrix), landmarks_matrix)
         np.save(str(saved_training_pairs_indices), training_pairs_indices)
