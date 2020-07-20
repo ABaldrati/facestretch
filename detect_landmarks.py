@@ -11,7 +11,7 @@ import cv2
 from joblib import dump, load
 from tqdm import tqdm
 
-from main import normalize_landmarks, extract_landmarks, parse_image_path
+from utils import normalize_landmarks, extract_landmarks, parse_image_path
 
 model = load("model_ITML.joblib")
 norm_ref_landmark = None

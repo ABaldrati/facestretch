@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-from main import parse_image_path, extract_landmarks, normalize_landmarks
+from utils import normalize_landmarks, extract_landmarks, parse_image_path
 
 
 def save_action_reference_landmarks(dataset_path: Path, reference_landmark_folder: Path, action):
