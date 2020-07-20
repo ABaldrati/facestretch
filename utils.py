@@ -3,12 +3,11 @@ from pathlib import Path
 from typing import List
 
 import cv2
+import dlib
 import numpy as np
 from imutils import face_utils
 from matplotlib import pyplot as plt
 from more_itertools import windowed
-
-from main import detector, predictor
 
 
 def get_rotation_matrix(angle):
@@ -99,3 +98,7 @@ def generate_images_from_video(src_path: Path, dst_folder_path: Path):
             plt.imsave(str(dst_folder_path.joinpath(f"{subject}_{category}{int(current_frame)}_{0}.png")), frame)
         # current_frame = min(current_frame + frame_density, 100.)
         current_frame += frame_density
+
+
+detector = dlib.get_frontal_face_detector()
+predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')

@@ -4,17 +4,13 @@ from pathlib import Path
 
 from imutils import face_utils
 import numpy as np
-import argparse
-import imutils
-import dlib
 import cv2
-from joblib import dump, load
-from tqdm import tqdm
+from joblib import load
 
-from main import MODELS_PATH
-from utils import normalize_landmarks, extract_landmarks, parse_image_path
+from utils import normalize_landmarks, extract_landmarks, detector, predictor
 
-model = load(str(MODELS_PATH.joinpath("model_ITML.joblib")))
+MODELS_PATH = Path("models")
+model = load(str(("model_ITML.joblib")))
 norm_ref_landmark = None
 
 action_reference_landmarks = np.load("reference_landmark_folder/bacio.npy")
@@ -47,9 +43,6 @@ def shape_to_np(shape, dtype="int"):
 
 
 def main():
-    detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
-
     # Initialize the camera
     cv2.namedWindow("FaceLandmarks")
     cap = cv2.VideoCapture(0)
