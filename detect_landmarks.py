@@ -67,6 +67,7 @@ detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
 print(type(detector))
 
+grab_next_landmark_frame = False
 while rval:
     # Read frame and convert to grayscale
     rval, frame = cap.read()
@@ -110,9 +111,14 @@ while rval:
             rval = False
 
         if key == ord("s"):
+            grab_next_landmark_frame = True
+
+        if grab_next_landmark_frame:
             reference_landmark = extract_landmarks(frame)
-            norm_ref_landmark = normalize_landmarks(reference_landmark[0]).flatten()
-            print("Successfully saved reference neuter image")
+            if reference_landmark != []:
+                norm_ref_landmark = normalize_landmarks(reference_landmark[0]).flatten()
+                grab_next_landmark_frame = False
+                print("Successfully saved reference neuter image")
 
         if norm_ref_landmark is not None:
             normalized_landmarks = normalize_landmarks(shape).flatten() - norm_ref_landmark
