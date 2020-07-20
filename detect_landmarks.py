@@ -10,10 +10,21 @@ from joblib import load
 from utils import normalize_landmarks, extract_landmarks, detector, predictor
 
 MODELS_PATH = Path("models")
-model = load(str(("model_ITML.joblib")))
+model = load(str(("model_ITML_wrong.joblib")))
 norm_ref_landmark = None
 
-action_reference_landmarks = np.load("reference_landmark_folder/bacio.npy")
+action_reference_landmarks = {
+    "bacio": np.load("reference_landmark_folder/bacio.npy"),
+    "sorriso": np.load("reference_landmark_folder/sorriso.npy"),
+    "sorrisino": np.load("reference_landmark_folder/sorrisino.npy"),
+    "gengive": np.load("reference_landmark_folder/gengive.npy"),
+    "cruccio": np.load("reference_landmark_folder/cruccio.npy"),
+    "occhiolinodx": np.load("reference_landmark_folder/occhiolinodx.npy"),
+    "occhiolinosx": np.load("reference_landmark_folder/occhiolinosx.npy"),
+    "neutro": np.load("reference_landmark_folder/neutro.npy")
+}
+
+action_list = list(action_reference_landmarks.keys())
 
 
 def rect_to_bb(rect):
@@ -54,12 +65,20 @@ def main():
     else:
         rval = False
 
+    current_action = None
     norm_ref_landmark = None
     grab_next_landmark_frame = False
     while rval:
         # Read frame and convert to grayscale
         rval, frame = cap.read()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        if current_action is not None:
+            cv2.putText(frame, f"action: {current_action}", (0, 20),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 127), 2)
+        else:
+            cv2.putText(frame, f"Premi 's' per acquisire volto neutro", (0, 20),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 127), 2)
 
         # detect faces in the grayscale image
         rects = detector(gray, 0)
@@ -95,11 +114,18 @@ def main():
 
             cv2.drawContours(frame, [box], 0, (0, 0, 255), 2)
 
+            if key == ord('a') and current_action is not None:
+                current_action = action_list[(action_list.index(current_action) - 1) % len(action_list)]
+
+            if key == ord('d') and current_action is not None:
+                current_action = action_list[(action_list.index(current_action) + 1) % len(action_list)]
+
             if key == ord('q'):
                 rval = False
 
             if key == ord("s"):
                 grab_next_landmark_frame = True
+                current_action = "sorrisino"
 
             if grab_next_landmark_frame:
                 reference_landmark = extract_landmarks(frame)
@@ -108,12 +134,12 @@ def main():
                     grab_next_landmark_frame = False
                     print("Successfully saved reference neuter image")
 
-            if norm_ref_landmark is not None:
+            if norm_ref_landmark is not None and current_action is not None:
                 normalized_landmarks = normalize_landmarks(shape).flatten() - norm_ref_landmark
 
                 distance_func = model.get_metric()
-                distance = distance_func(action_reference_landmarks, normalized_landmarks)
-                yes_no = model.predict([[action_reference_landmarks, normalized_landmarks]])
+                distance = distance_func(action_reference_landmarks[current_action], normalized_landmarks)
+                yes_no = model.predict([[action_reference_landmarks[current_action], normalized_landmarks]])
                 cv2.putText(frame, f"distance {distance:.2f} {yes_no}", (int(x) - 10, int(y) - 100),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
 
