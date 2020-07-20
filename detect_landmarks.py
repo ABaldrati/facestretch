@@ -61,7 +61,6 @@ def main():
     else:
         rval = False
 
-
     grab_next_landmark_frame = False
     while rval:
         # Read frame and convert to grayscale
