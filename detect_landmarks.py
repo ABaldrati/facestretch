@@ -11,9 +11,10 @@ import cv2
 from joblib import dump, load
 from tqdm import tqdm
 
+from main import MODELS_PATH
 from utils import normalize_landmarks, extract_landmarks, parse_image_path
 
-model = load("model_ITML.joblib")
+model = load(str(MODELS_PATH.joinpath("model_ITML.joblib")))
 norm_ref_landmark = None
 
 action_reference_landmarks = np.load("reference_landmark_folder/bacio.npy")

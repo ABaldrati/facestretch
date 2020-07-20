@@ -1,19 +1,14 @@
-import itertools
-import operator
-import sys
+from datetime import datetime
 from pathlib import Path
-from random import sample
-from typing import List
 
-import cv2
 import dlib
-import matplotlib.pyplot as plt
 import numpy as np
-from imutils import face_utils
 from joblib import dump
 from metric_learn import ITML
 
 from dataset import generate_weakly_supervised_interpolated_dataset
+
+MODELS_PATH = Path("models")
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
@@ -45,12 +40,16 @@ def main():
         training_pairs_labels = np.load(saved_training_pairs_labels)
 
     print("Starting training...")
-    model = SDML(verbose=True, preprocessor=landmarks_matrix, prior="identity", balance_param=0.4) #, convergence_threshold=1e-5)
-    model.fit(training_pairs_indices, training_pairs_labels)
-    # model = ITML(preprocessor=landmarks_matrix)
-    # model.fit(training_pairs_indices, training_pairs_labels)
+    training_start_time = datetime.now().isoformat()
 
-    dump(model, 'model_SDML.joblib')
+    # model = SDML(verbose=True, preprocessor=landmarks_matrix, prior="identity", balance_param=0.4) #, convergence_threshold=1e-5)
+    # model.fit(training_pairs_indices, training_pairs_labels)
+    model = ITML(preprocessor=landmarks_matrix, max_iter=10_000, verbose=True)
+    model.fit(training_pairs_indices, training_pairs_labels)
+
+    MODELS_PATH.mkdir(exist_ok=True)
+
+    dump(model, str(MODELS_PATH.joinpath(f'model_ITML_{training_start_time}.joblib')))
 
 
 if __name__ == '__main__':
