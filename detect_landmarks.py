@@ -10,7 +10,7 @@ from joblib import load
 from utils import normalize_landmarks, extract_landmarks, detector, predictor
 
 MODELS_PATH = Path("models")
-model = load(str(("model_ITML_wrong.joblib")))
+model = load(str(("model_ITML.joblib")))
 norm_ref_landmark = None
 
 action_reference_landmarks = {
@@ -125,13 +125,13 @@ def main():
 
             if key == ord("s"):
                 grab_next_landmark_frame = True
-                current_action = "sorrisino"
 
             if grab_next_landmark_frame:
                 reference_landmark = extract_landmarks(frame)
                 if reference_landmark != []:
                     norm_ref_landmark = normalize_landmarks(reference_landmark[0]).flatten()
                     grab_next_landmark_frame = False
+                    current_action = "sorrisino"
                     print("Successfully saved reference neuter image")
 
             if norm_ref_landmark is not None and current_action is not None:
