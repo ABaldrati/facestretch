@@ -106,7 +106,7 @@ def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[
         print(f"Extracted landmarks from {subject_neuter_image_path}")
 
         neuter_landmarks[subject] = neuter_subject_landmarks
-        landmarks_matrix = np.vstack([landmarks_matrix, neuter_subject_landmarks])
+        landmarks_matrix = np.vstack([landmarks_matrix, np.zeros(len(neuter_subject_landmarks))])
         landmark_indices_mapping[f"{subject}_neutro"] = landmarks_matrix.shape[0] - 1
 
     for image_path in action_images:
