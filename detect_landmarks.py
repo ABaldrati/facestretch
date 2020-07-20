@@ -54,6 +54,7 @@ def main():
     else:
         rval = False
 
+    norm_ref_landmark = None
     grab_next_landmark_frame = False
     while rval:
         # Read frame and convert to grayscale
