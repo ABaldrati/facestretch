@@ -1,17 +1,12 @@
 from datetime import datetime
 from pathlib import Path
 
-import dlib
 import numpy as np
 from joblib import dump
 from metric_learn import ITML
 
 from dataset import generate_weakly_supervised_interpolated_dataset
-
-MODELS_PATH = Path("models")
-
-detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
+from detect_landmarks import MODELS_PATH
 
 
 def main():
