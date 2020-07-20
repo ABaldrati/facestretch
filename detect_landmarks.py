@@ -10,7 +10,7 @@ from joblib import load
 from utils import normalize_landmarks, extract_landmarks, detector, predictor
 
 MODELS_PATH = Path("models")
-model = load(str(("model_ITML.joblib")))
+model = load(str(MODELS_PATH.joinpath("model_ITML.joblib")))
 norm_ref_landmark = None
 
 action_reference_landmarks = {
