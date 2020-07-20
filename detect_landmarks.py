@@ -13,35 +13,10 @@ from tqdm import tqdm
 
 from main import normalize_landmarks, extract_landmarks, parse_image_path
 
-model = load("model_SDML.joblib")
+model = load("model_ITML.joblib")
 norm_ref_landmark = None
 
-
-def get_action_reference_landmarks(dataset_path: Path, action):
-    action_images = list(filter(lambda i: action in i.name, dataset_path.iterdir()))
-
-    action_landmarks = []
-    with tqdm(action_images) as t:
-        for image in t:
-            t.set_postfix_str(str(image), refresh=True)
-            subject, _ = parse_image_path(image)
-            neuter_landmarks_path = list(dataset_path.glob(f"{subject}_neutro*"))[0]
-            neuter_image = cv2.imread(str(neuter_landmarks_path), cv2.IMREAD_UNCHANGED)
-            neuter_image_landmarks = extract_landmarks(neuter_image)
-
-            image = cv2.imread(str(image), cv2.IMREAD_UNCHANGED)
-            image_landmarks = extract_landmarks(image)
-
-            if not (image_landmarks and neuter_image_landmarks):
-                continue
-
-            neuter_landmarks = normalize_landmarks(neuter_image_landmarks[0])
-            action_landmarks.append(normalize_landmarks(image_landmarks[0]) - neuter_landmarks)
-
-    return sum(action_landmarks) / len(action_landmarks)
-
-
-action_reference_landmarks = get_action_reference_landmarks(Path("dataset_new"), "occhiolinodx").flatten()
+action_reference_landmarks = np.load("reference_landmark_folder/bacio.npy")
 
 
 def rect_to_bb(rect):
