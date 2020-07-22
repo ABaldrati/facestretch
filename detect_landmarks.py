@@ -11,8 +11,6 @@ from joblib import load
 from utils import normalize_landmarks, extract_landmarks, detector, predictor, normalize_landmarks_eyes
 
 MODELS_PATH = Path("models")
-model = load(str(MODELS_PATH.joinpath("model_ITML.joblib")))
-norm_ref_landmark = None
 
 action_reference_landmarks = {
     "bacio": np.load("reference_landmark_folder/bacio.npy"),
@@ -55,6 +53,8 @@ def shape_to_np(shape, dtype="int"):
 
 
 def main():
+    model = load(str(MODELS_PATH.joinpath("model_ITML.joblib")))
+
     # Initialize the camera
     cv2.namedWindow("FaceLandmarks")
     cap = cv2.VideoCapture(0)
