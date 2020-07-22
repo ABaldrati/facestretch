@@ -7,7 +7,7 @@ import numpy as np
 import cv2
 from joblib import load
 
-from utils import normalize_landmarks, extract_landmarks, detector, predictor
+from utils import normalize_landmarks, extract_landmarks, detector, predictor, normalize_landmarks_eyes
 
 MODELS_PATH = Path("models")
 model = load(str(MODELS_PATH.joinpath("model_ITML.joblib")))
@@ -104,8 +104,11 @@ def main():
             key = cv2.waitKey(1)
 
             if key == ord('c'):
-                for (x, y) in shape:
-                    cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)
+                for (x, y) in normalize_landmarks_eyes(shape):
+                    cv2.circle(frame, (int(x * 250 + 150), int(y * 250 + 150)), 1, (0, 255, 255), -1)
+
+                for (x, y) in normalize_landmarks(shape):
+                    cv2.circle(frame, (int(x * 250 + 150), int(y * 250 + 150)), 1, (255, 0, 255), -1)
 
             rect = cv2.minAreaRect(shape)
             ((x, y), _, angle) = rect

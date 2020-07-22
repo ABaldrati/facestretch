@@ -37,6 +37,30 @@ def normalize_landmarks(landmarks):
     return rotated_landmarks
 
 
+def normalize_landmarks_eyes(landmarks):
+    """Normalize landmarks with respect to eyes and the nose instead of the whole landmarks' bounding box"""
+
+    eyes_landmarks = landmarks[36:48]
+
+    (x, y), (w, h), angle = cv2.minAreaRect(eyes_landmarks)
+
+    if abs(angle + 90) < abs(angle):
+        angle += 90
+
+    landmarks_matrix = np.hstack([np.array(landmarks), np.ones((len(landmarks), 1))])
+    center_point = tuple(landmarks[30])
+    rotation_matrix = cv2.getRotationMatrix2D(center_point, angle, scale=1)
+    rotated_landmarks = np.dot(landmarks_matrix, rotation_matrix.T)[:, :2]
+    rotated_landmarks_int = np.int0(rotated_landmarks)
+
+    x_bounding_rect, y_bounding_rect, w_bounding_rect, h_bounding_rect = cv2.boundingRect(rotated_landmarks_int)
+    rotated_landmarks[:, 0] = (rotated_landmarks[:, 0] - x_bounding_rect) / w_bounding_rect
+    rotated_landmarks[:, 1] = (rotated_landmarks[:, 1] - y_bounding_rect) / h_bounding_rect
+
+    return rotated_landmarks
+
+
+
 def extract_landmarks(image) -> List[np.ndarray]:
     grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     rects = detector(grayscale_image, 0)
