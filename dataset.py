@@ -10,10 +10,10 @@ import numpy as np
 from more_itertools import windowed
 
 from utils import parse_image_path, extract_landmarks, normalize_landmarks, interpolate_landmarks, add_images_pairings, \
-    generate_images_from_video
+    generate_images_from_video, normalize_landmarks_eyes
 
 
-def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[int]):
+def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[int], normalize_eyes=False):
     if 0 in rates:
         rates.remove(0)
     if 1 not in rates:
@@ -44,7 +44,11 @@ def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[
 
             continue
 
-        neuter_subject_landmarks = normalize_landmarks(landmarks_found[0]).flatten()
+        if normalize_eyes:
+            neuter_subject_landmarks = normalize_landmarks_eyes(landmarks_found[0]).flatten()
+        else:
+            neuter_subject_landmarks = normalize_landmarks(landmarks_found[0]).flatten()
+
         print(f"Extracted landmarks from {subject_neuter_image_path}")
 
         neuter_landmarks[subject] = neuter_subject_landmarks
@@ -111,7 +115,7 @@ def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[
     return landmarks_matrix, training_pairs_indices, training_pairs_labels
 
 
-def generate_training_weakly_supervised(path: Path):
+def generate_training_weakly_supervised(path: Path, normalize_eyes=False):
     # This code assumes that each image in the training path has only one face in it
 
     paths_indices_mapping = {}
@@ -130,7 +134,10 @@ def generate_training_weakly_supervised(path: Path):
             raise Exception(f"landmarks not found in image ({image_path})")
 
         for landmarks in landmarks_list:  # `landmarks_list` should contain only one element to properly populate `paths_indices_mapping`
-            normalized_landmarks = normalize_landmarks(landmarks)
+            if normalize_eyes:
+                normalized_landmarks = normalize_landmarks_eyes(landmarks)
+            else:
+                normalized_landmarks = normalize_landmarks(landmarks)
 
             landmarks_matrix = np.vstack([landmarks_matrix, normalized_landmarks.flatten()])
             paths_indices_mapping[image_path] = landmarks_matrix.shape[0] - 1
@@ -208,7 +215,7 @@ def generate_training_weakly_supervised(path: Path):
     return landmarks_matrix, training_pairs_indices, training_pairs_labels
 
 
-def generate_training_supervised_dataset_categorical(path: Path):
+def generate_training_supervised_dataset_categorical(path: Path, normalize_eyes=False):
     # This code assumes that each image in the training path has only one face in it
 
     landmarks_matrix = np.empty((0, 68 * 2))
@@ -227,7 +234,10 @@ def generate_training_supervised_dataset_categorical(path: Path):
             raise Exception(f"landmarks not found in image ({image_path})")
 
         for landmarks in landmarks_list:  # `landmarks_list` should contain only one element to properly populate `paths_indices_mapping`
-            normalized_landmarks = normalize_landmarks(landmarks)
+            if normalize_eyes:
+                normalized_landmarks = normalize_landmarks_eyes(landmarks)
+            else:
+                normalized_landmarks = normalize_landmarks(landmarks)
 
             landmarks_matrix = np.vstack([landmarks_matrix, normalized_landmarks.flatten()])
             category = parse_image_path(image_path)[1]
@@ -236,7 +246,7 @@ def generate_training_supervised_dataset_categorical(path: Path):
     return landmarks_matrix, training_paris_labels
 
 
-def generate_training_supervised_dataset_regression(path: Path):
+def generate_training_supervised_dataset_regression(path: Path, normalize_eyes=False):
     # This code assumes that each image in the training path has only one face in it
 
     landmarks_matrix = np.empty((0, 68 * 2))
@@ -255,7 +265,10 @@ def generate_training_supervised_dataset_regression(path: Path):
             raise Exception(f"landmarks not found in image ({image_path})")
 
         for landmarks in landmarks_list:  # `landmarks_list` should contain only one element to properly populate `paths_indices_mapping`
-            normalized_landmarks = normalize_landmarks(landmarks)
+            if normalize_eyes:
+                normalized_landmarks = normalize_landmarks_eyes(landmarks)
+            else:
+                normalized_landmarks = normalize_landmarks(landmarks)
 
             landmarks_matrix = np.vstack([landmarks_matrix, normalized_landmarks.flatten()])
             deformation_index = parse_image_path(image_path)[2]
