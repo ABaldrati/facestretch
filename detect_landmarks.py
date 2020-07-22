@@ -1,5 +1,6 @@
 # This code is based on https://www.pyimagesearch.com/2017/04/03/facial-landmarks-dlib-opencv-python/
 # import the necessary packages
+from collections import deque
 from pathlib import Path
 
 from imutils import face_utils
@@ -68,6 +69,11 @@ def main():
     current_action = None
     norm_ref_landmark = None
     grab_next_landmark_frame = False
+
+    faces_init = []
+    previous_shapes = None
+    SMOOTHING_FRAMES_FACTOR = 5
+
     while rval:
         # Read frame and convert to grayscale
         rval, frame = cap.read()
@@ -83,17 +89,38 @@ def main():
         # detect faces in the grayscale image
         rects = detector(gray, 0)
         # loop over the face detections
+
         for (i, rect) in enumerate(rects):
             # determine the facial landmarks for the face region, then
             # convert the facial landmark (x, y)-coordinates to a NumPy
             # array
-            shape = predictor(gray, rect)
-            shape = face_utils.shape_to_np(shape)
+            current_shape = predictor(gray, rect)
+            current_shape = face_utils.shape_to_np(current_shape)
+
+            if len(faces_init) == SMOOTHING_FRAMES_FACTOR and previous_shapes is None:
+                previous_shapes = deque(faces_init, maxlen=SMOOTHING_FRAMES_FACTOR)
+
+            if previous_shapes is None:
+                faces_init.append(current_shape)
+            else:
+                previous_shapes.append(current_shape)
 
             # convert dlib's rectangle to a OpenCV-style bounding box
             # [i.e., (x, y, w, h)], then draw the face bounding box
             (x, y, w, h) = face_utils.rect_to_bb(rect)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+            if previous_shapes is not None:
+                raw_weights = np.arange(SMOOTHING_FRAMES_FACTOR) + 1
+                weights = (len(raw_weights) ** raw_weights / len(raw_weights))
+                weights = weights / sum(weights)
+
+                shape = np.zeros((68, 2))
+                for weight, previous_shape in zip(weights, previous_shapes):
+                    shape += weight * previous_shape
+                shape = np.int0(shape)
+            else:
+                shape = current_shape
 
             # show the face number
             # cv2.putText(frame, "Face #{}".format(i + 1), (x - 10, y - 10),
@@ -104,10 +131,10 @@ def main():
             key = cv2.waitKey(1)
 
             if key == ord('c'):
-                for (x, y) in normalize_landmarks_eyes(shape):
+                for (x, y) in normalize_landmarks(shape):
                     cv2.circle(frame, (int(x * 250 + 150), int(y * 250 + 150)), 1, (0, 255, 255), -1)
 
-                for (x, y) in normalize_landmarks(shape):
+                for (x, y) in normalize_landmarks(current_shape):
                     cv2.circle(frame, (int(x * 250 + 150), int(y * 250 + 150)), 1, (255, 0, 255), -1)
 
             rect = cv2.minAreaRect(shape)
