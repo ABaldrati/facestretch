@@ -69,7 +69,8 @@ def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[
         neuter_subject_landmarks = neuter_landmarks[subject]
 
         for rate in rates:
-            interpolated_subject_landmarks = interpolate_landmarks(neuter_subject_landmarks, action_subject_landmarks, rate) - neuter_subject_landmarks
+            interpolated_subject_landmarks = interpolate_landmarks(neuter_subject_landmarks, action_subject_landmarks,
+                                                                   rate) - neuter_subject_landmarks
             landmarks_matrix = np.vstack([landmarks_matrix, interpolated_subject_landmarks])
             landmark_indices_mapping[f"{subject}_{action}_{rate}"] = landmarks_matrix.shape[0] - 1
 
@@ -215,7 +216,7 @@ def generate_training_weakly_supervised(path: Path, normalize_eyes=False):
     return landmarks_matrix, training_pairs_indices, training_pairs_labels
 
 
-def generate_training_supervised_dataset_categorical(path: Path, normalize_eyes=False):
+def generate_training_supervised_dataset_categorical(src_path: Path, normalize_eyes=False):
     # This code assumes that each image in the training path has only one face in it
 
     landmarks_matrix = np.empty((0, 68 * 2))
@@ -224,8 +225,28 @@ def generate_training_supervised_dataset_categorical(path: Path, normalize_eyes=
     training_paris_labels = []
     training_paris_labels = np.array(training_paris_labels, dtype="str")
 
-    for image_path in sorted(path.iterdir(), key=lambda p: (
-            p.name.split("_")[:-1], 101 if "neutro" in p.name else int(p.stem.split("_")[-1]))):
+    neuter_landmarks = {}
+    subjects = set(map(lambda i: parse_image_path(i)[0], src_path.iterdir()))
+
+    for subject in subjects:
+        print(f"Importing subject {subject}")
+        subject_neuter_image_path = list(src_path.glob(f"{subject}_neutro.*"))[0]
+        subject_neuter_image = cv2.imread(str(subject_neuter_image_path), cv2.IMREAD_UNCHANGED)
+        landmarks_found = extract_landmarks(subject_neuter_image)
+
+        if not landmarks_found:
+            print(f"Neuter landmarks not found for subject {subject}. Skipping...", file=sys.stderr)
+            action_images = list(filter(lambda i: subject not in i.name, list(action_images)))
+            continue
+
+        if normalize_eyes:
+            neuter_subject_landmarks = normalize_landmarks_eyes(landmarks_found[0]).flatten()
+        else:
+            neuter_subject_landmarks = normalize_landmarks(landmarks_found[0]).flatten()
+        print(f"Extracted landmarks from {subject_neuter_image_path}")
+        neuter_landmarks[subject] = neuter_subject_landmarks
+
+    for image_path in sorted(src_path.iterdir()):
         image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
 
         landmarks_list = extract_landmarks(image)
@@ -239,7 +260,8 @@ def generate_training_supervised_dataset_categorical(path: Path, normalize_eyes=
             else:
                 normalized_landmarks = normalize_landmarks(landmarks)
 
-            landmarks_matrix = np.vstack([landmarks_matrix, normalized_landmarks.flatten()])
+            normalized_landmarks = normalized_landmarks.flatten() - neuter_landmarks[parse_image_path(image_path)[0]]
+            landmarks_matrix = np.vstack([landmarks_matrix, normalized_landmarks])
             category = parse_image_path(image_path)[1]
             training_paris_labels = np.append(training_paris_labels, category)
 
