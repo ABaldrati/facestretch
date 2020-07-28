@@ -76,13 +76,15 @@ def generate_neural_network_dataset(src_path: Path, rates: List[int]):
 
         neuter_landmarks[subject] = neuter_subject_landmarks
         # landmarks_matrix = np.vstack([landmarks_matrix, neuter_subject_landmarks])
-        for ith_cropping in range(5):
-            cropping_min_x_coordinate = random.randint(0, int(0.5 * landmark_min_x))
-            cropping_max_x_coordinate = random.randint(int(0.5 * (subject_neuter_image.shape[1] + landmark_max_x)),
-                                                       subject_neuter_image.shape[1])
-            cropping_min_y_coordinate = random.randint(0, int(0.5 * landmark_min_y))
-            cropping_max_y_coordinate = random.randint(int(0.5 * (subject_neuter_image.shape[0] + landmark_max_y)),
-                                                       subject_neuter_image.shape[0])
+        for ith_cropping in range(7):
+            cropping_min_x_coordinate = random.randint(0, int(0.7 * landmark_min_x))
+            cropping_max_x_coordinate = random.randint(
+                subject_neuter_image.shape[1] - int(0.7 * (subject_neuter_image.shape[1] - landmark_max_x)),
+                subject_neuter_image.shape[1])
+            cropping_min_y_coordinate = random.randint(0, int(0.7 * landmark_min_y))
+            cropping_max_y_coordinate = random.randint(
+                subject_neuter_image.shape[0] - int(0.7 * (subject_neuter_image.shape[0] - landmark_max_y)),
+                subject_neuter_image.shape[0])
 
             cropped_image = subject_neuter_image[cropping_min_y_coordinate:cropping_max_y_coordinate,
                             cropping_min_x_coordinate: cropping_max_x_coordinate, :]
@@ -116,13 +118,15 @@ def generate_neural_network_dataset(src_path: Path, rates: List[int]):
         landmark_min_y = np.min(landmarks_subject_action_image[0][:, 1])
         landmark_max_y = np.max(landmarks_subject_action_image[0][:, 1])
 
-        for ith_cropping in range(5):
-            cropping_min_x_coordinate = random.randint(0, int(0.5 * landmark_min_x))
-            cropping_max_x_coordinate = random.randint(int(0.5 * (subject_action_image.shape[1] + landmark_max_x)),
-                                                       subject_action_image.shape[1])
-            cropping_min_y_coordinate = random.randint(0, int(0.5 * landmark_min_y))
-            cropping_max_y_coordinate = random.randint(int(0.5 * (subject_action_image.shape[0] + landmark_max_y)),
-                                                       subject_action_image.shape[0])
+        for ith_cropping in range(7):
+            cropping_min_x_coordinate = random.randint(0, int(0.7 * landmark_min_x))
+            cropping_max_x_coordinate = random.randint(
+                subject_action_image.shape[1] - int(0.7 * (subject_action_image.shape[1] - landmark_max_x)),
+                subject_action_image.shape[1])
+            cropping_min_y_coordinate = random.randint(0, int(0.7 * landmark_min_y))
+            cropping_max_y_coordinate = random.randint(
+                subject_action_image.shape[0] - int(0.7 * (subject_action_image.shape[0] - landmark_max_y)),
+                subject_action_image.shape[0])
 
             cropped_image = subject_action_image[cropping_min_y_coordinate:cropping_max_y_coordinate,
                             cropping_min_x_coordinate: cropping_max_x_coordinate, :]
@@ -246,10 +250,12 @@ def dataset_generator(src_path: Path, rates: List[int], batch_size: int):
             landmark_min_y = np.min(image_landmarks[0][:, 1])
             landmark_max_y = np.max(image_landmarks[0][:, 1])
 
-            cropping_min_x_coordinate = random.randint(0, int(0.5 * landmark_min_x))
-            cropping_max_x_coordinate = random.randint(int(0.5 * (image.shape[1] + landmark_max_x)), image.shape[1])
-            cropping_min_y_coordinate = random.randint(0, int(0.5 * landmark_min_y))
-            cropping_max_y_coordinate = random.randint(int(0.5 * (image.shape[0] + landmark_max_y)), image.shape[0])
+            cropping_min_x_coordinate = random.randint(0, int(0.7 * landmark_min_x))
+            cropping_max_x_coordinate = random.randint(image.shape[1] - int(0.7 * (image.shape[1] - landmark_max_x)),
+                                                       image.shape[1])
+            cropping_min_y_coordinate = random.randint(0, int(0.7 * landmark_min_y))
+            cropping_max_y_coordinate = random.randint(image.shape[0] - int(0.7 * (image.shape[0] - landmark_max_y)),
+                                                       image.shape[0])
 
             image = image[cropping_min_y_coordinate:cropping_max_y_coordinate,
                     cropping_min_x_coordinate: cropping_max_x_coordinate, :]
