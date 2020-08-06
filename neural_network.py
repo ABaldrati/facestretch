@@ -94,7 +94,11 @@ def generate_neural_network_dataset(src_path: Path, rates: List[int], normalize_
         landmark_min_y = np.min(landmarks_subject_image[0][:, 1])
         landmark_max_y = np.max(landmarks_subject_image[0][:, 1])
 
-        neuter_subject_landmarks = normalize_landmarks_eyes(landmarks_subject_image[0]).flatten()
+        if normalize_eyes:
+            neuter_subject_landmarks = normalize_landmarks_eyes(landmarks_subject_image[0]).flatten()
+        else:
+            neuter_subject_landmarks = normalize_landmarks(landmarks_subject_image[0]).flatten()
+
         print(f"Extracted landmarks from {subject_neuter_image_path}")
 
         neuter_landmarks[subject] = neuter_subject_landmarks
@@ -124,7 +128,10 @@ def generate_neural_network_dataset(src_path: Path, rates: List[int], normalize_
                     action_images = list(filter(lambda i: subject not in i.name, list(action_images)))
 
                 else:
-                    normalized_landmarks = normalize_landmarks_eyes(landmarks_cropped_rotated_found[0]).flatten()
+                    if normalize_eyes:
+                        normalized_landmarks = normalize_landmarks_eyes(landmarks_cropped_rotated_found[0]).flatten()
+                    else:
+                        normalized_landmarks = normalize_landmarks(landmarks_cropped_rotated_found[0]).flatten()
                     rescaled_normalized_landmarks = normalized_landmarks - neuter_landmarks[subject]
                     landmarks_matrix = np.vstack([landmarks_matrix, rescaled_normalized_landmarks])
                     labels = np.vstack([labels, face_to_label_matrix[face_row_mapping["neutro"]]])
@@ -166,7 +173,12 @@ def generate_neural_network_dataset(src_path: Path, rates: List[int], normalize_
                         f"Action landmarks ({action}) not found for subject {subject}. At angle {degree} at {ith_cropping} Skipping...",
                         file=sys.stderr)
                 else:
-                    action_subject_landmarks = normalize_landmarks_eyes(landmarks_cropped_rotated_found[0]).flatten()
+                    if normalize_eyes:
+                        action_subject_landmarks = normalize_landmarks_eyes(
+                            landmarks_cropped_rotated_found[0]).flatten()
+                    else:
+                        action_subject_landmarks = normalize_landmarks(landmarks_cropped_rotated_found[0]).flatten()
+
                     neuter_subject_landmarks = neuter_landmarks[subject]
 
                     for rate in rates:
@@ -231,12 +243,15 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
 
         if not landmarks_subject_image:
             print(f"Neuter landmarks not found for subject {subject}. Skipping...", file=sys.stderr)
-            # action_images = list(filter(lambda i: subject not in i.name, list(action_images)))
             subjects.remove(subject)
 
             continue
 
-        neuter_subject_landmarks = normalize_landmarks_eyes(landmarks_subject_image[0]).flatten()
+        if normalize_eyes:
+            neuter_subject_landmarks = normalize_landmarks_eyes(landmarks_subject_image[0]).flatten()
+        else:
+            neuter_subject_landmarks = normalize_landmarks(landmarks_subject_image[0]).flatten()
+
         print(f"Extracted landmarks from {subject_neuter_image_path}")
 
         neuter_landmarks[subject] = neuter_subject_landmarks
@@ -247,11 +262,14 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
         landmarks_subject_flipped_image = extract_landmarks(flipped_image)
         if not landmarks_subject_flipped_image:
             print(f"Neuter landmarks not found for subject {subject}-flipped. Skipping...", file=sys.stderr)
-            # action_images = list(filter(lambda i: subject not in i.name, list(action_images)))
             subjects.remove(subject)
             continue
 
-        neuter_subject_flipped_landmarks = normalize_landmarks_eyes(landmarks_subject_flipped_image[0]).flatten()
+        if normalize_eyes:
+            neuter_subject_flipped_landmarks = normalize_landmarks_eyes(landmarks_subject_flipped_image[0]).flatten()
+        else:
+            neuter_subject_flipped_landmarks = normalize_landmarks(landmarks_subject_flipped_image[0]).flatten()
+
         print(f"Extracted landmarks flipped from {subject_neuter_image_path}")
 
         neuter_landmarks[f"{subject}_flipped"] = neuter_subject_flipped_landmarks
@@ -316,7 +334,10 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
                     file=sys.stderr)
                 continue
 
-            normalized_landmarks = normalize_landmarks_eyes(final_image_landmarks[0]).flatten()
+            if normalize_eyes:
+                normalized_landmarks = normalize_landmarks_eyes(final_image_landmarks[0]).flatten()
+            else:
+                normalized_landmarks = normalize_landmarks(final_image_landmarks[0]).flatten()
 
             for rate in rates:
                 rescaled_interpolated_landmark = interpolate_landmarks(current_neuter_landmark,
