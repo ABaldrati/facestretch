@@ -368,12 +368,12 @@ callbacks_list = [
     #     # min_delta=-0.0001
     # ),
     keras.callbacks.ModelCheckpoint(
-        filepath='./Model/saved-models-{epoch:06d}-{val_loss:.5f}.h5',
+        filepath='./neural_model/saved-models-{epoch:06d}-{val_loss:.5f}.h5',
         monitor='val_loss',
         save_best_only=False
     ),
     keras.callbacks.CSVLogger(
-        filename='./Model/my_model.csv',
+        filename='./neural_model/my_model.csv',
         separator=',',
         append=True
     ),
@@ -381,29 +381,26 @@ callbacks_list = [
 
 
 def main():
-    # saved_landmarks_matrix = Path("landmarks_matrix_neural.npy")
-    # saved_labels = Path("labels_neural.npy")
-    #
-    # if not saved_landmarks_matrix.exists() or not saved_labels.exists():
-    #     print("Generating dataset...")
-    #
-    #     landmark_matrix, labels = generate_neural_network_dataset(Path("dataset_filtered").resolve(), [1])
-    #
-    #     np.save(str(saved_landmarks_matrix), landmark_matrix)
-    #     np.save(str(saved_labels), labels)
-    # else:
-    #     print("Loading dataset from filesystem...")
-    #     landmark_matrix = np.load(saved_landmarks_matrix)
-    #     labels = np.load(saved_labels)
-    #
-    # print("Starting training...")
+    batch_size = 200
+    neural_model_path = Path("neural_model")
+    neural_model_path.mkdir(exist_ok=True)
 
-    batch_size = 50
+    neural_validation_landmarks_path = Path("neural_validation_landmarks.npy")
+    neural_validation_labels_path = Path("neural_validation_labels.npy")
 
-    training_generator = dataset_generator(Path("dataset_neural_training").resolve(), [1], batch_size=batch_size)
-    validation_data = generate_neural_network_dataset(Path("dataset_neural_validation").resolve(), [1])
-    np.save("neural_validation_landmark_[1].npy", validation_data[0])
-    np.save("neural_validation_labels_[1].npy", validation_data[1])
+    if not neural_validation_labels_path.exists() or not neural_validation_landmarks_path.exists():
+        print("Generating validation dataset...")
+
+        neural_validation_landmarks, neural_validation_labels = generate_neural_network_dataset(
+            Path("dataset_neural_validation").resolve(), [0.2, 0.4, 0.6, 0.8, 1])
+        np.save(str(neural_validation_landmarks_path), neural_validation_landmarks)
+        np.save(str(neural_validation_labels_path), neural_validation_labels)
+    else:
+        neural_validation_landmarks = np.load(str(neural_validation_landmarks_path))
+        neural_validation_labels = np.load(str(neural_validation_labels_path))
+
+    training_generator = dataset_generator(Path("dataset_neural_training").resolve(), batch_size=batch_size)
+    validation_data = tuple([neural_validation_landmarks, neural_validation_labels])
 
     model = keras.Sequential()
     model.add(keras.layers.Input(batch_input_shape=[None, 68 * 2]))
@@ -411,23 +408,21 @@ def main():
     model.add(keras.layers.Dense(64, kernel_initializer="he_normal", activation="elu"))
     model.add(keras.layers.BatchNormalization())
     model.add(keras.layers.Dropout(0.1))
-    model.add(keras.layers.Dense(32, kernel_initializer="he_normal", activation="elu"))
+    model.add(keras.layers.Dense(64, kernel_initializer="he_normal", activation="elu"))
     model.add(keras.layers.BatchNormalization())
     model.add(keras.layers.Dropout(0.1))
-    model.add(keras.layers.Dense(16, kernel_initializer="he_normal", activation="elu"))
+    model.add(keras.layers.Dense(32, kernel_initializer="he_normal", activation="elu"))
     model.add(keras.layers.BatchNormalization())
     model.add(keras.layers.Dropout(0.1))
     model.add(keras.layers.Dense(8, activation="sigmoid"))
 
-    model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0002),
+    model.compile(optimizer=keras.optimizers.Adam(),
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
-    # history = model.fit(landmark_matrix, labels, epochs=200, callbacks=callbacks_list, verbose=1, shuffle=True,
-    # validation_split = 0.15, batch_size = 25)
 
     history = model.fit_generator(generator=training_generator,
                                   steps_per_epoch=50,
-                                  epochs=200,
+                                  epochs=100,
                                   verbose=1,
                                   validation_data=validation_data,
                                   callbacks=callbacks_list)
@@ -441,18 +436,18 @@ def main():
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
-    plt.savefig('./Model/training-validation-loss')
+    plt.savefig('./neural_model/training-validation-loss')
 
     plt.clf()
     mAP = history.history['accuracy']
     val_mAP = history.history['val_accuracy']
-    plt.plot(epochs, mAP, 'bo', label='Training f1m')
-    plt.plot(epochs, val_mAP, 'b', label='Validation f1m')
-    plt.title('Training and validation f1m  ')
+    plt.plot(epochs, mAP, 'bo', label='Training accuracy')
+    plt.plot(epochs, val_mAP, 'b', label='Validation accuracy')
+    plt.title('Training and validation accuracy')
     plt.xlabel('Epochs')
     plt.ylabel('acc')
     plt.legend()
-    plt.savefig('./Model/training-validation-f1m')
+    plt.savefig('./neural_model/training-validation-accuracy')
 
 
 if __name__ == '__main__':
