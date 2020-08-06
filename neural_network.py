@@ -299,9 +299,13 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
             image = cv2.imread(str(rough_image_path), cv2.IMREAD_UNCHANGED)
             if do_flip_image:
                 image = horizontal_flip(image)
-                current_neuter_landmark = neuter_landmarks[f"{current_subject}_flipped"]
+                current_neuter_landmark = neuter_landmarks.get(f"{current_subject}_flipped")
             else:
-                current_neuter_landmark = neuter_landmarks[current_subject]
+                current_neuter_landmark = neuter_landmarks.get(current_subject)
+
+            if not current_neuter_landmark:
+                print(f"neuter image of subject {current_subject} not available", file=sys.stderr)
+                continue
 
             image_landmarks = extract_landmarks(image)
             if not image_landmarks:
