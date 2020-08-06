@@ -42,6 +42,13 @@ def generate_neural_network_dataset(src_path: Path, rates: List[int], normalize_
             * training_pairs_labels: matrix with the labels for each action, dim: [num_samples, num_actions]
       """
 
+    NUM_CROPPING_ITERATIONS = 5
+
+    MIN_ROTATION_DEGREE = -14
+    MAX_ROTATION_DEGREE = 16
+    STEP_ROTATION_DEGREE = 2
+
+    CROPPING_TOLERANCE = 0.7
 
     face_to_label_matrix = np.identity(8)
     face_row_mapping = {}
@@ -92,20 +99,22 @@ def generate_neural_network_dataset(src_path: Path, rates: List[int], normalize_
 
         neuter_landmarks[subject] = neuter_subject_landmarks
         # landmarks_matrix = np.vstack([landmarks_matrix, neuter_subject_landmarks])
-        for ith_cropping in range(7):
-            cropping_min_x_coordinate = random.randint(0, int(0.7 * landmark_min_x))
+        for ith_cropping in range(NUM_CROPPING_ITERATIONS):
+            cropping_min_x_coordinate = random.randint(0, int(CROPPING_TOLERANCE * landmark_min_x))
             cropping_max_x_coordinate = random.randint(
-                subject_neuter_image.shape[1] - int(0.7 * (subject_neuter_image.shape[1] - landmark_max_x)),
+                subject_neuter_image.shape[1] - int(
+                    CROPPING_TOLERANCE * (subject_neuter_image.shape[1] - landmark_max_x)),
                 subject_neuter_image.shape[1])
-            cropping_min_y_coordinate = random.randint(0, int(0.7 * landmark_min_y))
+            cropping_min_y_coordinate = random.randint(0, int(CROPPING_TOLERANCE * landmark_min_y))
             cropping_max_y_coordinate = random.randint(
-                subject_neuter_image.shape[0] - int(0.7 * (subject_neuter_image.shape[0] - landmark_max_y)),
+                subject_neuter_image.shape[0] - int(
+                    CROPPING_TOLERANCE * (subject_neuter_image.shape[0] - landmark_max_y)),
                 subject_neuter_image.shape[0])
 
             cropped_image = subject_neuter_image[cropping_min_y_coordinate:cropping_max_y_coordinate,
                             cropping_min_x_coordinate: cropping_max_x_coordinate, :]
 
-            for degree in range(-10, 12, 2):
+            for degree in range(MIN_ROTATION_DEGREE, MAX_ROTATION_DEGREE, STEP_ROTATION_DEGREE):
                 rotated_image = rotate_image(cropped_image, degree)
                 landmarks_cropped_rotated_found = extract_landmarks(rotated_image)
                 if not landmarks_cropped_rotated_found:
@@ -134,20 +143,22 @@ def generate_neural_network_dataset(src_path: Path, rates: List[int], normalize_
         landmark_min_y = np.min(landmarks_subject_action_image[0][:, 1])
         landmark_max_y = np.max(landmarks_subject_action_image[0][:, 1])
 
-        for ith_cropping in range(7):
-            cropping_min_x_coordinate = random.randint(0, int(0.7 * landmark_min_x))
+        for ith_cropping in range(NUM_CROPPING_ITERATIONS):
+            cropping_min_x_coordinate = random.randint(0, int(CROPPING_TOLERANCE * landmark_min_x))
             cropping_max_x_coordinate = random.randint(
-                subject_action_image.shape[1] - int(0.7 * (subject_action_image.shape[1] - landmark_max_x)),
+                subject_action_image.shape[1] - int(
+                    CROPPING_TOLERANCE * (subject_action_image.shape[1] - landmark_max_x)),
                 subject_action_image.shape[1])
-            cropping_min_y_coordinate = random.randint(0, int(0.7 * landmark_min_y))
+            cropping_min_y_coordinate = random.randint(0, int(CROPPING_TOLERANCE * landmark_min_y))
             cropping_max_y_coordinate = random.randint(
-                subject_action_image.shape[0] - int(0.7 * (subject_action_image.shape[0] - landmark_max_y)),
+                subject_action_image.shape[0] - int(
+                    CROPPING_TOLERANCE * (subject_action_image.shape[0] - landmark_max_y)),
                 subject_action_image.shape[0])
 
             cropped_image = subject_action_image[cropping_min_y_coordinate:cropping_max_y_coordinate,
                             cropping_min_x_coordinate: cropping_max_x_coordinate, :]
 
-            for degree in range(-10, 12, 2):
+            for degree in range(MIN_ROTATION_DEGREE, MAX_ROTATION_DEGREE, STEP_ROTATION_DEGREE):
                 rotated_image = rotate_image(cropped_image, degree)
                 landmarks_cropped_rotated_found = extract_landmarks(rotated_image)
                 if not landmarks_cropped_rotated_found:
@@ -189,8 +200,12 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
             * training_pairs_labels: matrix with the labels for each action in batch, dim: [batch_size, num_actions]
       """
 
-    face_to_label_matrix = np.identity(8)
+    MIN_ROTATION_DEGREE = -14
+    MAX_ROTATION_DEGREE = 14
 
+    CROPPING_TOLERANCE = 0.7
+
+    face_to_label_matrix = np.identity(8)
 
     face_row_mapping = {}
     face_row_mapping["neutro"] = 0
@@ -201,11 +216,6 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
     face_row_mapping["bacio"] = 5
     face_row_mapping["sorriso"] = 6
     face_row_mapping["sorrisino"] = 7
-
-    if 0 in rates:
-        rates.remove(0)
-    if 1 not in rates:
-        rates.append(1)
 
     neuter_landmarks = {}
 
@@ -257,10 +267,9 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
             current_action = np.random.choice(array_actions)
             current_subject = np.random.choice(array_subjects)
             do_flip_image = np.random.choice(flip_image)
-            current_image_angle_rotation = random.randint(-12, 12)
-
-            # if "occhiolino" in current_action:
-            #     do_flip_image = False
+            current_image_angle_rotation = random.randint(MIN_ROTATION_DEGREE, MAX_ROTATION_DEGREE)
+            rates = np.random.rand(3)
+            rates = np.append(rates, 1)
 
             image_name = f"{current_subject}_{current_action}"
             rough_image_path_list = list(src_path.glob(f"{image_name}.*"))
@@ -287,11 +296,11 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
             landmark_min_y = np.min(image_landmarks[0][:, 1])
             landmark_max_y = np.max(image_landmarks[0][:, 1])
 
-            cropping_min_x_coordinate = random.randint(0, int(0.7 * landmark_min_x))
-            cropping_max_x_coordinate = random.randint(image.shape[1] - int(0.7 * (image.shape[1] - landmark_max_x)),
+            cropping_min_x_coordinate = random.randint(0, int(CROPPING_TOLERANCE * landmark_min_x))
+            cropping_max_x_coordinate = random.randint(image.shape[1] - int(CROPPING_TOLERANCE * (image.shape[1] - landmark_max_x)),
                                                        image.shape[1])
-            cropping_min_y_coordinate = random.randint(0, int(0.7 * landmark_min_y))
-            cropping_max_y_coordinate = random.randint(image.shape[0] - int(0.7 * (image.shape[0] - landmark_max_y)),
+            cropping_min_y_coordinate = random.randint(0, int(CROPPING_TOLERANCE * landmark_min_y))
+            cropping_max_y_coordinate = random.randint(image.shape[0] - int(CROPPING_TOLERANCE * (image.shape[0] - landmark_max_y)),
                                                        image.shape[0])
 
             image = image[cropping_min_y_coordinate:cropping_max_y_coordinate,
