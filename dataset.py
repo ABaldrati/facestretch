@@ -168,7 +168,7 @@ def generate_training_weakly_supervised(src_path: Path, normalize_eyes=False):
     training_pairs_indices = np.empty((0, 2), dtype=np.int16)
     training_pairs_labels = np.empty((0, 1), dtype=np.int16)
 
-    for image_path in sorted(path.iterdir(), key=lambda p: (
+    for image_path in sorted(src_path.iterdir(), key=lambda p: (
             p.name.split("_")[:-1], 101 if "neutro" in p.name else int(p.stem.split("_")[-1]))):
         image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
 
@@ -186,14 +186,14 @@ def generate_training_weakly_supervised(src_path: Path, normalize_eyes=False):
             landmarks_matrix = np.vstack([landmarks_matrix, normalized_landmarks.flatten()])
             paths_indices_mapping[image_path] = landmarks_matrix.shape[0] - 1
 
-    neuter_images = list(filter(lambda f: "neutro" in f.name, path.iterdir()))
-    occhiolinodx_images = list(filter(lambda f: "occhiolinodx" in f.name, path.iterdir()))
-    occhiolinosx_images = list(filter(lambda f: "occhiolinosx" in f.name, path.iterdir()))
-    cruccio_images = list(filter(lambda f: "cruccio" in f.name, path.iterdir()))
-    sorriso_images = list(filter(lambda f: "sorriso" in f.name, path.iterdir()))
-    sorrisino_images = list(filter(lambda f: "sorrisino" in f.name, path.iterdir()))
-    gengive_images = list(filter(lambda f: "gengive" in f.name, path.iterdir()))
-    bacio_images = list(filter(lambda f: "bacio" in f.name, path.iterdir()))
+    neuter_images = list(filter(lambda f: "neutro" in f.name, src_path.iterdir()))
+    occhiolinodx_images = list(filter(lambda f: "occhiolinodx" in f.name, src_path.iterdir()))
+    occhiolinosx_images = list(filter(lambda f: "occhiolinosx" in f.name, src_path.iterdir()))
+    cruccio_images = list(filter(lambda f: "cruccio" in f.name, src_path.iterdir()))
+    sorriso_images = list(filter(lambda f: "sorriso" in f.name, src_path.iterdir()))
+    sorrisino_images = list(filter(lambda f: "sorrisino" in f.name, src_path.iterdir()))
+    gengive_images = list(filter(lambda f: "gengive" in f.name, src_path.iterdir()))
+    bacio_images = list(filter(lambda f: "bacio" in f.name, src_path.iterdir()))
 
     all_images = [occhiolinodx_images,
                   occhiolinosx_images,
