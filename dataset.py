@@ -14,6 +14,27 @@ from utils import parse_image_path, extract_landmarks, normalize_landmarks, inte
 
 
 def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[int], normalize_eyes=False):
+    """ This function generate a dataset intended to be used in a weakly supervised algorithm where label `+1` is
+        assigned to a pair with similar landmarks and label `-1` is assigned to a pair with dissimilar landmarks.
+        In order to augment the pair considered we interpolate the sample between the neuter images and the action images
+        with rate specified by `rates` parameter.
+        Each sample is normalized subtracting to each action image the corresponding neuter image of the subject.
+        Similar pair considered:
+            * same rate, same action, different subjects
+        Different pair considered:
+            * different action, same rate, different subjects
+
+        In order to work this function need the dataset image files in format: `name_action.ext`
+
+        :param src_path: input folder
+        :param rates: rates used to interpolate landmarks
+        :param normalize_eyes: if True normalize landmarks with respect to eyes and the nose instead of the whole landmarks' bounding box
+        :return:
+            * landmarks_matrix: matrix which contains all the landmarks normalized, dim: [num_samples, 68 * 2]
+            * training_pairs_indices: each row of this matrix contains the indices of the landmarks that form a pair taken
+                into account, dim: [num_pairs, 2]
+            * training_pairs_labels: vector which contains the similarity (+1, -1) for each pair
+        """
     if 0 in rates:
         rates.remove(0)
     if 1 not in rates:
@@ -116,7 +137,29 @@ def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[
     return landmarks_matrix, training_pairs_indices, training_pairs_labels
 
 
-def generate_training_weakly_supervised(path: Path, normalize_eyes=False):
+def generate_training_weakly_supervised(src_path: Path, normalize_eyes=False):
+    """ NB: Use `generate_weakly_supervised_interpolated_dataset` which is proven to work better.
+
+        This function generate a dataset intended to be used in a weakly supervised algorithm where label `+1` is
+           assigned to a pair with similar landmarks and label `-1` is assigned to a pair with dissimilar landmarks.
+           The `levels` variable manage the possible range of the action considered
+           Similar pair considered:
+               * same subject, same action, similar levels (+-15)
+               * neuter images and first (5) action images of same subject
+               * different subject, same action, similar levels
+           Different pair considered:
+               * otherwise
+
+            In order to work this function need the dataset image files in format: `name_action_level.ext`
+
+           :param src_path: input folder
+           :param normalize_eyes: if True normalize landmarks with respect to eyes and the nose instead of the whole landmarks' bounding box
+           :return:
+               * landmarks_matrix: matrix which contains all the landmarks normalized, dim [num_samples, 68 * 2]
+               * training_pairs_indices: each row of this matrix contains the indices of the landmarks that form a pair taken
+                   into account, dim: [num_pairs, 2]
+               * training_pairs_labels: vector which contains the similarity (+1, -1) for each pair
+           """
     # This code assumes that each image in the training path has only one face in it
 
     paths_indices_mapping = {}
@@ -217,6 +260,16 @@ def generate_training_weakly_supervised(path: Path, normalize_eyes=False):
 
 
 def generate_training_supervised_dataset_categorical(src_path: Path, normalize_eyes=False):
+    """ This function generate a dataset intended to be used in a supervised algorithm.
+        Each sample is normalized subtracting to each action image the corresponding neuter image of the subject.
+        In order to work this function need the dataset image files in format: `name_action.ext`
+
+        :param src_path: input folder
+        :param normalize_eyes: if True normalize landmarks with respect to eyes and the nose instead of the whole landmarks' bounding box
+        :return:
+            * landmarks_matrix: matrix which contains all the normalized landmarks, dim: [num_samples, 68 * 2]
+            * training_pairs_labels: vector which contains the action for each landmark
+        """
     # This code assumes that each image in the training path has only one face in it
 
     landmarks_matrix = np.empty((0, 68 * 2))
@@ -269,6 +322,16 @@ def generate_training_supervised_dataset_categorical(src_path: Path, normalize_e
 
 
 def generate_training_supervised_dataset_regression(path: Path, normalize_eyes=False):
+    """ NB: In supervised training use `generate_training_supervised_dataset_categorical` which works better
+        This function generate a dataset intended to be used in a supervised algorithm.
+        In order to work this function need the dataset image files in format: `name_action_level.ext`
+
+       :param src_path: input folder
+       :param normalize_eyes: if True normalize landmarks with respect to eyes and the nose instead of the whole landmarks' bounding box
+       :return:
+           * landmarks_matrix: matrix which contains all the normalized landmarks, dim: [num_samples, 68 * 2]
+           * training_pairs_labels: vector which contains the progress of the action
+       """
     # This code assumes that each image in the training path has only one face in it
 
     landmarks_matrix = np.empty((0, 68 * 2))
