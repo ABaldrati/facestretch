@@ -1,21 +1,17 @@
+import random
 import sys
 from pathlib import Path
 from typing import List
 
 import cv2
-import tensorflow as tf
-from tensorflow import keras
-
-import numpy as np
 import matplotlib.pyplot as plt
-import random
+import numpy as np
+import skimage as sk
+from skimage import transform
+from tensorflow import keras
 
 from utils import parse_image_path, extract_landmarks, normalize_landmarks, interpolate_landmarks, \
     normalize_landmarks_eyes
-
-import skimage as sk
-from skimage import transform
-from skimage import util
 
 
 def rotate_image(image_array: np.ndarray, degree: int):
@@ -26,7 +22,27 @@ def horizontal_flip(image_array):
     return image_array[:, ::-1]
 
 
-def generate_neural_network_dataset(src_path: Path, rates: List[int]):
+def generate_neural_network_dataset(src_path: Path, rates: List[int], normalize_eyes=True):
+    """
+        This function generate a dataset intended to be used by a neural network.
+        Each sample is normalized subtracting to each action image the corresponding neuter image of the subject.
+        In order to augment the pair considered we interpolate the sample between the neuter images and the action images
+        with rates specified by `rates` parameter. Since a neural network need a lot of data to work properly we perform
+        a data augmentation flipping, rotating and cropping the images.
+        In order to work this function need the dataset image files in format: `name_action.ext`
+
+        We have used this function to generate the validation dataset since we need the same dataset for each epoch in
+        order to have a fair comparison among them.
+
+        :param src_path: input folder
+        :param rates: rates used to interpolate landmarks
+        :param normalize_eyes: if True normalize landmarks with respect to eyes and the nose instead of the whole landmarks' bounding box
+        :return:
+            * landmarks_matrix: matrix which contains all the normalized landmarks, dim: [num_samples, 68 * 2]
+            * training_pairs_labels: matrix with the labels for each action, dim: [num_samples, num_actions]
+      """
+
+
     face_to_label_matrix = np.identity(8)
     face_row_mapping = {}
     face_row_mapping["neutro"] = 0
@@ -153,8 +169,29 @@ def generate_neural_network_dataset(src_path: Path, rates: List[int]):
     return landmarks_matrix, labels
 
 
-def dataset_generator(src_path: Path, rates: List[int], batch_size: int):
+def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
+    """
+        This function is a generator which each step create a batch of data for a neural network training.
+        Each sample is normalized subtracting to each action image the corresponding neuter image of the subject.
+        In order to augment the pair considered we interpolate the sample between the neuter images and the action images
+        with random rates (actually three random rates and the rate `1`) . Since a neural network need a lot of data to work properly we perform
+        a data augmentation flipping, rotating and cropping the images.
+        In order to work this function need the dataset image files in format: `name_action.ext`
+
+        We use this generator for dynamically create the training dataset so that the neural network didn't see the same
+        image twice.
+
+        :param src_path: input folder
+        :param batch_size: number of samples for each batch
+        :param normalize_eyes: if True normalize landmarks with respect to eyes and the nose instead of the whole landmarks' bounding box
+        :return:
+            * batch_landmarks_matrix: matrix which contains all the normalized landmarks in batch, dim: [batch_size, 68 * 2]
+            * training_pairs_labels: matrix with the labels for each action in batch, dim: [batch_size, num_actions]
+      """
+
     face_to_label_matrix = np.identity(8)
+
+
     face_row_mapping = {}
     face_row_mapping["neutro"] = 0
     face_row_mapping["occhiolinodx"] = 1
