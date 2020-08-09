@@ -273,8 +273,6 @@ def generate_training_supervised_dataset_categorical(src_path: Path, normalize_e
     # This code assumes that each image in the training path has only one face in it
 
     landmarks_matrix = np.empty((0, 68 * 2))
-    # training_pairs_labels = ["neutro", "occhiolinodx", "occhiolinosx", "cruccio", "sorriso", "sorrisino", "bacio",
-    #                          "gengive"]
     training_paris_labels = []
     training_paris_labels = np.array(training_paris_labels, dtype="str")
 
@@ -335,8 +333,6 @@ def generate_training_supervised_dataset_regression(path: Path, normalize_eyes=F
     # This code assumes that each image in the training path has only one face in it
 
     landmarks_matrix = np.empty((0, 68 * 2))
-    # training_pairs_labels = ["neutro", "occhiolinodx", "occhiolinosx", "cruccio", "sorriso", "sorrisino", "bacio",
-    #                          "gengive"]
     training_paris_labels = []
     training_paris_labels = np.array(training_paris_labels, dtype=np.int8)
 
