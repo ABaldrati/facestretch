@@ -19,7 +19,8 @@ action_reference_landmarks = {}
 for action in actions:
     action_reference_landmarks[action] = np.load(str(REFERENCE_FOLDER_PATH.joinpath(f"{action}.npy")))
 
-action_list = list(action_reference_landmarks.keys())
+models = sorted(list(set(map(lambda i: i, MODELS_PATH.iterdir()))))
+print(models)
 
 
 def rect_to_bb(rect):
@@ -48,9 +49,20 @@ def shape_to_np(shape, dtype="int"):
     return coords
 
 
-def main():
-    model = load(str(MODELS_PATH.joinpath("model_ITML.joblib")))
+def load_model(model_path: Path):
+    if model_path.suffix == ".h5":
+        return keras.models.load_model(model_path), model_path
+    else:
+        return load(model_path), model_path
 
+
+def main():
+    face_row_mapping = {}
+    for i, action in enumerate(actions):
+        face_row_mapping[action] = i
+
+    model, current_model_path = load_model(models[0])
+    # model = keras.models.load_model("neural.h5")
     # Initialize the camera
     cv2.namedWindow("FaceLandmarks")
     cap = cv2.VideoCapture(0)
@@ -76,7 +88,9 @@ def main():
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         if current_action is not None:
-            cv2.putText(frame, f"action: {current_action}", (0, 20),
+            cv2.putText(frame, f"target action: {current_action}", (0, 20),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 127), 2)
+            cv2.putText(frame, f"model: {str(current_model_path.stem)}", (400, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 127), 2)
         else:
             cv2.putText(frame, f"Premi 's' per acquisire volto neutro", (0, 20),
@@ -141,10 +155,16 @@ def main():
             cv2.drawContours(frame, [box], 0, (0, 0, 255), 2)
 
             if key == ord('a') and current_action is not None:
-                current_action = action_list[(action_list.index(current_action) - 1) % len(action_list)]
+                current_action = actions[(actions.index(current_action) - 1) % len(actions)]
 
             if key == ord('d') and current_action is not None:
-                current_action = action_list[(action_list.index(current_action) + 1) % len(action_list)]
+                current_action = actions[(actions.index(current_action) + 1) % len(actions)]
+
+            if key == ord("w") and current_action is not None:
+                model, current_model_path = load_model(models[(models.index(current_model_path) + 1) % len(models)])
+
+            if key == ord("x") and current_action is not None:
+                model, current_model_path = load_model(models[(models.index(current_model_path) - 1) % len(models)])
 
             if key == ord('q'):
                 rval = False
@@ -155,20 +175,26 @@ def main():
             if grab_next_landmark_frame:
                 reference_landmark = extract_landmarks(frame)
                 if reference_landmark != []:
-                    norm_ref_landmark = normalize_landmarks(reference_landmark[0]).flatten()
+                    norm_ref_landmark = normalize_landmarks_eyes(reference_landmark[0]).flatten()
                     grab_next_landmark_frame = False
-                    current_action = "sorrisino"
+                    if current_action is None:
+                        current_action = "sorrisino"
                     print("Successfully saved reference neuter image")
 
             if norm_ref_landmark is not None and current_action is not None:
-                normalized_landmarks = normalize_landmarks(shape).flatten() - norm_ref_landmark
+                normalized_landmarks = normalize_landmarks_eyes(shape).flatten() - norm_ref_landmark
 
-                distance_func = model.get_metric()
-                distance = distance_func(action_reference_landmarks[current_action], normalized_landmarks)
-                yes_no = model.predict([[action_reference_landmarks[current_action], normalized_landmarks]])
-                cv2.putText(frame, f"distance {distance:.2f} {yes_no}", (int(x) - 10, int(y) - 100),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
-
+                if ".joblib" in str(current_model_path):
+                    distance_func = model.get_metric()
+                    distance = distance_func(action_reference_landmarks[current_action], normalized_landmarks)
+                    cv2.putText(frame, f"distance {distance:.2f}", (int(x) - 10, int(y) - 100),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
+                elif ".h5" in str(current_model_path):
+                    distance = model.predict(normalized_landmarks.reshape(1, -1))
+                    distance = distance[:, face_row_mapping[current_action]]
+                    np.set_printoptions(precision=2)
+                    cv2.putText(frame, f"distance {1 - distance}", (int(x) - 10, int(y) - 100),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
                 # for (x, y) in normalized_landmarks:
                 #     cv2.circle(frame, (int(x * 250 + 150), int(y * 250 + 150)), 1, (0, 255, 255), -1)
 
