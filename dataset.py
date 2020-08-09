@@ -13,7 +13,7 @@ from utils import parse_image_path, extract_landmarks, normalize_landmarks, inte
     generate_images_from_video, normalize_landmarks_eyes
 
 
-def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[int], normalize_eyes=False):
+def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[int], normalize_eyes=True):
     """ This function generate a dataset intended to be used in a weakly supervised algorithm where label `+1` is
         assigned to a pair with similar landmarks and label `-1` is assigned to a pair with dissimilar landmarks.
         In order to augment the pair considered we interpolate the sample between the neuter images and the action images
@@ -137,7 +137,7 @@ def generate_weakly_supervised_interpolated_dataset(src_path: Path, rates: List[
     return landmarks_matrix, training_pairs_indices, training_pairs_labels
 
 
-def generate_training_weakly_supervised(src_path: Path, normalize_eyes=False):
+def generate_training_weakly_supervised(src_path: Path, normalize_eyes=True):
     """ NB: Use `generate_weakly_supervised_interpolated_dataset` which is proven to work better.
 
         This function generate a dataset intended to be used in a weakly supervised algorithm where label `+1` is
@@ -259,7 +259,7 @@ def generate_training_weakly_supervised(src_path: Path, normalize_eyes=False):
     return landmarks_matrix, training_pairs_indices, training_pairs_labels
 
 
-def generate_training_supervised_dataset_categorical(src_path: Path, normalize_eyes=False):
+def generate_training_supervised_dataset_categorical(src_path: Path, normalize_eyes=True):
     """ This function generate a dataset intended to be used in a supervised algorithm.
         Each sample is normalized subtracting to each action image the corresponding neuter image of the subject.
         In order to work this function need the dataset image files in format: `name_action.ext`
@@ -319,7 +319,7 @@ def generate_training_supervised_dataset_categorical(src_path: Path, normalize_e
     return landmarks_matrix, training_paris_labels
 
 
-def generate_training_supervised_dataset_regression(path: Path, normalize_eyes=False):
+def generate_training_supervised_dataset_regression(path: Path, normalize_eyes=True):
     """ NB: In supervised training use `generate_training_supervised_dataset_categorical` which works better
         This function generate a dataset intended to be used in a supervised algorithm.
         In order to work this function need the dataset image files in format: `name_action_level.ext`
