@@ -50,17 +50,6 @@ def generate_neural_network_dataset(src_path: Path, rates: List[int], normalize_
 
     CROPPING_TOLERANCE = 0.7
 
-    face_to_label_matrix = np.identity(8)
-    face_row_mapping = {}
-    face_row_mapping["neutro"] = 0
-    face_row_mapping["occhiolinodx"] = 1
-    face_row_mapping["occhiolinosx"] = 2
-    face_row_mapping["cruccio"] = 3
-    face_row_mapping["gengive"] = 4
-    face_row_mapping["bacio"] = 5
-    face_row_mapping["sorriso"] = 6
-    face_row_mapping["sorrisino"] = 7
-
     if 0 in rates:
         rates.remove(0)
     if 1 not in rates:
@@ -75,7 +64,11 @@ def generate_neural_network_dataset(src_path: Path, rates: List[int], normalize_
 
     subjects = sorted(set(map(lambda i: parse_image_path(i)[0], src_path.iterdir())))
     actions = sorted(set(map(lambda i: parse_image_path(i)[1], src_path.iterdir())))
-    actions.remove("neutro")
+
+    face_to_label_matrix = np.identity(len(actions))
+    face_row_mapping = {}
+    for i, action in enumerate(sorted(list(actions))):
+        face_row_mapping[action] = i
 
     for subject in subjects:
         print(f"Importing subject {subject}")
@@ -217,23 +210,15 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
 
     CROPPING_TOLERANCE = 0.7
 
-    face_to_label_matrix = np.identity(8)
-
-    face_row_mapping = {}
-    face_row_mapping["neutro"] = 0
-    face_row_mapping["occhiolinodx"] = 1
-    face_row_mapping["occhiolinosx"] = 2
-    face_row_mapping["cruccio"] = 3
-    face_row_mapping["gengive"] = 4
-    face_row_mapping["bacio"] = 5
-    face_row_mapping["sorriso"] = 6
-    face_row_mapping["sorrisino"] = 7
-
     neuter_landmarks = {}
 
     subjects = sorted(set(map(lambda i: parse_image_path(i)[0], src_path.iterdir())))
     actions = sorted(set(map(lambda i: parse_image_path(i)[1], src_path.iterdir())))
-    actions.remove("neutro")
+
+    face_to_label_matrix = np.identity(len(actions))
+    face_row_mapping = {}
+    for i, action in enumerate(sorted(list(actions))):
+        face_row_mapping[action] = i
 
     for subject in subjects:
         print(f"Importing subject {subject}")
@@ -276,7 +261,6 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
 
     array_subjects = np.array(list(subjects))
     array_actions = np.array(list(actions))
-    array_actions = np.append(array_actions, ["neutro"])
     flip_image = np.array([True, False])
     while True:
         batch_landmarks_matrix = np.empty((0, 68 * 2))
@@ -292,7 +276,7 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
             image_name = f"{current_subject}_{current_action}"
             rough_image_path_list = list(src_path.glob(f"{image_name}.*"))
             if not rough_image_path_list:
-                print(f"file with name {image_name} not found", file=sys.stderr)
+               # print(f"file with name {image_name} not found", file=sys.stderr)
                 continue
 
             rough_image_path = rough_image_path_list[0]
@@ -303,7 +287,7 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
             else:
                 current_neuter_landmark = neuter_landmarks.get(current_subject)
 
-            if not current_neuter_landmark:
+            if current_neuter_landmark is None:
                 print(f"neuter image of subject {current_subject} not available", file=sys.stderr)
                 continue
 
@@ -319,11 +303,13 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
             landmark_max_y = np.max(image_landmarks[0][:, 1])
 
             cropping_min_x_coordinate = random.randint(0, int(CROPPING_TOLERANCE * landmark_min_x))
-            cropping_max_x_coordinate = random.randint(image.shape[1] - int(CROPPING_TOLERANCE * (image.shape[1] - landmark_max_x)),
-                                                       image.shape[1])
+            cropping_max_x_coordinate = random.randint(
+                image.shape[1] - int(CROPPING_TOLERANCE * (image.shape[1] - landmark_max_x)),
+                image.shape[1])
             cropping_min_y_coordinate = random.randint(0, int(CROPPING_TOLERANCE * landmark_min_y))
-            cropping_max_y_coordinate = random.randint(image.shape[0] - int(CROPPING_TOLERANCE * (image.shape[0] - landmark_max_y)),
-                                                       image.shape[0])
+            cropping_max_y_coordinate = random.randint(
+                image.shape[0] - int(CROPPING_TOLERANCE * (image.shape[0] - landmark_max_y)),
+                image.shape[0])
 
             image = image[cropping_min_y_coordinate:cropping_max_y_coordinate,
                     cropping_min_x_coordinate: cropping_max_x_coordinate, :]
@@ -348,11 +334,10 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
                                                                        normalized_landmarks,
                                                                        rate) - current_neuter_landmark
                 batch_landmarks_matrix = np.vstack([batch_landmarks_matrix, rescaled_interpolated_landmark])
-                if "occhiolino" in current_action and do_flip_image:
-                    if "occhiolinodx" in current_action:
-                        current_action = "occhiolinosx"
-                    else:
-                        current_action = "occhiolinodx"
+                if "sx" == current_action[-2:] and do_flip_image:
+                    current_action = current_action[:-2] + "dx"
+                elif "dx" == current_action[-2:] and do_flip_image:
+                    current_action = current_action[:-2] + "sx"
 
                 batch_labels = np.vstack([batch_labels, rate * face_to_label_matrix[face_row_mapping[current_action]] +
                                           (1 - rate) * face_to_label_matrix[face_row_mapping["neutro"]]])
@@ -361,12 +346,12 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
 
 
 callbacks_list = [
-    # keras.callbacks.EarlyStopping(
-    #     monitor='loss',
-    #     patience=1000000,
-    #     mode='min',
-    #     # min_delta=-0.0001
-    # ),
+    keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=25,
+        mode='auto',
+        #   min_delta=-0.0001
+    ),
     keras.callbacks.ModelCheckpoint(
         filepath='./neural_model/saved-models-{epoch:06d}-{val_loss:.5f}.h5',
         monitor='val_loss',
@@ -414,9 +399,9 @@ def main():
     model.add(keras.layers.Dense(32, kernel_initializer="he_normal", activation="elu"))
     model.add(keras.layers.BatchNormalization())
     model.add(keras.layers.Dropout(0.1))
-    model.add(keras.layers.Dense(8, activation="sigmoid"))
+    model.add(keras.layers.Dense(8, activation="sigmoid"))  # 8 = num_actions, change if you use more actions
 
-    model.compile(optimizer=keras.optimizers.Adam(),
+    model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.0005),
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
@@ -439,10 +424,10 @@ def main():
     plt.savefig('./neural_model/training-validation-loss')
 
     plt.clf()
-    mAP = history.history['accuracy']
-    val_mAP = history.history['val_accuracy']
-    plt.plot(epochs, mAP, 'bo', label='Training accuracy')
-    plt.plot(epochs, val_mAP, 'b', label='Validation accuracy')
+    accuracy = history.history['accuracy']
+    val_accuracy = history.history['val_accuracy']
+    plt.plot(epochs, accuracy, 'bo', label='Training accuracy')
+    plt.plot(epochs, val_accuracy, 'b', label='Validation accuracy')
     plt.title('Training and validation accuracy')
     plt.xlabel('Epochs')
     plt.ylabel('acc')
