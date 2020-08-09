@@ -3,25 +3,21 @@
 from collections import deque
 from pathlib import Path
 
-from imutils import face_utils
-import numpy as np
 import cv2
+import numpy as np
+from imutils import face_utils
+from tensorflow import keras
 from joblib import load
 
 from utils import normalize_landmarks, extract_landmarks, detector, predictor, normalize_landmarks_eyes
 
 MODELS_PATH = Path("models")
+REFERENCE_FOLDER_PATH = Path("reference_landmark_folder")
 
-action_reference_landmarks = {
-    "bacio": np.load("reference_landmark_folder/bacio.npy"),
-    "sorriso": np.load("reference_landmark_folder/sorriso.npy"),
-    "sorrisino": np.load("reference_landmark_folder/sorrisino.npy"),
-    "gengive": np.load("reference_landmark_folder/gengive.npy"),
-    "cruccio": np.load("reference_landmark_folder/cruccio.npy"),
-    "occhiolinodx": np.load("reference_landmark_folder/occhiolinodx.npy"),
-    "occhiolinosx": np.load("reference_landmark_folder/occhiolinosx.npy"),
-    "neutro": np.load("reference_landmark_folder/neutro.npy")
-}
+actions = sorted(list(set(map(lambda i: i.stem, REFERENCE_FOLDER_PATH.iterdir()))))
+action_reference_landmarks = {}
+for action in actions:
+    action_reference_landmarks[action] = np.load(str(REFERENCE_FOLDER_PATH.joinpath(f"{action}.npy")))
 
 action_list = list(action_reference_landmarks.keys())
 
