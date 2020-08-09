@@ -43,7 +43,7 @@ def generate_all_reference_landmark(dataset_path: Path, reference_landmark_folde
 def main():
     reference_landmark_folder_path = Path("reference_landmark_folder")
     reference_landmark_folder_path.mkdir(parents=True, exist_ok=True)
-    generate_all_reference_landmark(Path("dataset_new").resolve(), reference_landmark_folder_path)
+    generate_all_reference_landmark(Path("dataset_metric_learning").resolve(), reference_landmark_folder_path)
 
 
 if __name__ == '__main__':
