@@ -20,7 +20,6 @@ for action in actions:
     action_reference_landmarks[action] = np.load(str(REFERENCE_FOLDER_PATH.joinpath(f"{action}.npy")))
 
 models = sorted(list(set(map(lambda i: i, MODELS_PATH.iterdir()))))
-print(models)
 
 
 def rect_to_bb(rect):
