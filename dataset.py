@@ -279,6 +279,8 @@ def generate_training_supervised_dataset_categorical(src_path: Path, normalize_e
     neuter_landmarks = {}
     subjects = set(map(lambda i: parse_image_path(i)[0], src_path.iterdir()))
 
+    path_images = [i for i in src_path.iterdir()]
+
     for subject in subjects:
         print(f"Importing subject {subject}")
         subject_neuter_image_path = list(src_path.glob(f"{subject}_neutro.*"))[0]
@@ -287,7 +289,7 @@ def generate_training_supervised_dataset_categorical(src_path: Path, normalize_e
 
         if not landmarks_found:
             print(f"Neuter landmarks not found for subject {subject}. Skipping...", file=sys.stderr)
-            action_images = list(filter(lambda i: subject not in i.name, list(action_images)))
+            path_images = list(filter(lambda i: subject not in i.name, list(path_images)))
             continue
 
         if normalize_eyes:
@@ -297,13 +299,14 @@ def generate_training_supervised_dataset_categorical(src_path: Path, normalize_e
         print(f"Extracted landmarks from {subject_neuter_image_path}")
         neuter_landmarks[subject] = neuter_subject_landmarks
 
-    for image_path in sorted(src_path.iterdir()):
+    for image_path in sorted(path_images):
         image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
 
         landmarks_list = extract_landmarks(image)
 
         if not landmarks_list:
-            raise Exception(f"landmarks not found in image ({image_path})")
+            print(f"landmarks not found in image ({image_path})", file=sys.stderr)
+            continue
 
         for landmarks in landmarks_list:  # `landmarks_list` should contain only one element to properly populate `paths_indices_mapping`
             if normalize_eyes:
