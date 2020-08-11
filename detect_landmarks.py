@@ -14,13 +14,6 @@ from utils import normalize_landmarks, extract_landmarks, detector, predictor, n
 MODELS_PATH = Path("models")
 REFERENCE_FOLDER_PATH = Path("reference_landmark_folder")
 
-actions = sorted(list(set(map(lambda i: i.stem, REFERENCE_FOLDER_PATH.iterdir()))))
-action_reference_landmarks = {}
-for action in actions:
-    action_reference_landmarks[action] = np.load(str(REFERENCE_FOLDER_PATH.joinpath(f"{action}.npy")))
-
-models = sorted(list(set(map(lambda i: i, MODELS_PATH.iterdir()))))
-
 
 def rect_to_bb(rect):
     # take a bounding predicted by dlib and convert it
@@ -49,13 +42,24 @@ def shape_to_np(shape, dtype="int"):
 
 
 def load_model(model_path: Path):
-    if model_path.suffix == ".h5":
+    if callable(model_path):
+        return model_path, model_path
+    elif model_path.suffix == ".h5":
         return keras.models.load_model(model_path), model_path
-    else:
+    elif model_path.suffix == ".joblib":
         return load(model_path), model_path
 
 
+
 def main():
+    actions = sorted(list(set(map(lambda i: i.stem, REFERENCE_FOLDER_PATH.iterdir()))))
+    action_reference_landmarks = {}
+    for action in actions:
+        action_reference_landmarks[action] = np.load(str(REFERENCE_FOLDER_PATH.joinpath(f"{action}.npy")))
+
+    models = sorted(list(set(map(lambda i: i, MODELS_PATH.iterdir()))))
+    models.append(manifold)
+
     face_row_mapping = {}
     for i, action in enumerate(actions):
         face_row_mapping[action] = i
