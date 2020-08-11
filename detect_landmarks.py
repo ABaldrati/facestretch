@@ -6,12 +6,11 @@ from pathlib import Path
 import cv2
 import numpy as np
 from imutils import face_utils
-from tensorflow import keras
 from joblib import load
+from tensorflow import keras
 
 from utils import normalize_landmarks, extract_landmarks, detector, predictor, normalize_landmarks_eyes, \
     manifold
-
 
 MODELS_PATH = Path("models")
 REFERENCE_FOLDER_PATH = Path("reference_landmark_folder")
@@ -52,7 +51,6 @@ def load_model(model_path: Path):
         return load(model_path), model_path
 
 
-
 def main():
     actions = sorted(list(set(map(lambda i: i.stem, REFERENCE_FOLDER_PATH.iterdir()))))
     action_reference_landmarks = {}
@@ -67,7 +65,7 @@ def main():
         face_row_mapping[action] = i
 
     model, current_model_path = load_model(models[0])
-    # model = keras.models.load_model("neural.h5")
+
     # Initialize the camera
     cv2.namedWindow("FaceLandmarks")
     cap = cv2.VideoCapture(0)
@@ -100,7 +98,7 @@ def main():
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 127), 2)
             else:
                 cv2.putText(frame, f"model: {str(current_model_path.stem)}", (400, 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 127), 2)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 127), 2)
         else:
             cv2.putText(frame, f"Premi 's' per acquisire volto neutro", (0, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 127), 2)

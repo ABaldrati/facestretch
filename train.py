@@ -1,7 +1,6 @@
 from datetime import datetime
 from pathlib import Path
 
-import numpy as np
 from joblib import dump
 from metric_learn import ITML, LMNN, NCA, LFDA, SDML, MMC
 

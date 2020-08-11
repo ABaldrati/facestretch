@@ -6,8 +6,6 @@ from typing import List
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import skimage as sk
-from skimage import transform
 from tensorflow import keras
 
 from utils import parse_image_path, extract_landmarks, normalize_landmarks, interpolate_landmarks, \
@@ -268,7 +266,7 @@ def dataset_generator(src_path: Path, batch_size: int, normalize_eyes=True):
             image_name = f"{current_subject}_{current_action}"
             rough_image_path_list = list(src_path.glob(f"{image_name}.*"))
             if not rough_image_path_list:
-               # print(f"file with name {image_name} not found", file=sys.stderr)
+                # print(f"file with name {image_name} not found", file=sys.stderr)
                 continue
 
             rough_image_path = rough_image_path_list[0]

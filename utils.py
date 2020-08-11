@@ -5,15 +5,15 @@ from typing import List
 import cv2
 import dlib
 import numpy as np
+import skimage as sk
 from imutils import face_utils
 from matplotlib import pyplot as plt
 from more_itertools import windowed
-import skimage as sk
-from skimage import transform
 from scipy import linalg as la
+from skimage import transform
 
 
-def manifold(flattened_landmarks1, flattened_landmarks2): # manifold distance
+def manifold(flattened_landmarks1, flattened_landmarks2):  # manifold distance
     landmarks1 = flattened_landmarks1.reshape((-1, 2))
     landmarks2 = flattened_landmarks2.reshape((-1, 2))
     g1 = np.outer(landmarks1, landmarks1.T)
