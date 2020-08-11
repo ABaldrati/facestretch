@@ -8,6 +8,21 @@ import numpy as np
 from imutils import face_utils
 from matplotlib import pyplot as plt
 from more_itertools import windowed
+import skimage as sk
+from skimage import transform
+from scipy import linalg as la
+
+
+def manifold(flattened_landmarks1, flattened_landmarks2): # manifold distance
+    landmarks1 = flattened_landmarks1.reshape((-1, 2))
+    landmarks2 = flattened_landmarks2.reshape((-1, 2))
+    g1 = np.outer(landmarks1, landmarks1.T)
+    g2 = np.outer(landmarks2, landmarks2.T)
+    # print('Printing matrix shapes'), print(pose_descriptor_1.shape), print(g1.shape)
+
+    distance = np.trace(g1) + np.trace(g2) - 2.0 * np.trace(la.fractional_matrix_power(
+        np.dot(la.fractional_matrix_power(g1, 0.5), np.dot(g2, la.fractional_matrix_power(g1, 0.5))), 0.5))
+    return distance
 
 
 def get_rotation_matrix(angle):
