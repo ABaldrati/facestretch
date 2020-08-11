@@ -9,7 +9,9 @@ from imutils import face_utils
 from tensorflow import keras
 from joblib import load
 
-from utils import normalize_landmarks, extract_landmarks, detector, predictor, normalize_landmarks_eyes
+from utils import normalize_landmarks, extract_landmarks, detector, predictor, normalize_landmarks_eyes, \
+    manifold
+
 
 MODELS_PATH = Path("models")
 REFERENCE_FOLDER_PATH = Path("reference_landmark_folder")
@@ -93,7 +95,11 @@ def main():
         if current_action is not None:
             cv2.putText(frame, f"target action: {current_action}", (0, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 127), 2)
-            cv2.putText(frame, f"model: {str(current_model_path.stem)}", (400, 20),
+            if callable(current_model_path):
+                cv2.putText(frame, f"model: {str(current_model_path.__name__)}", (400, 20),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 127), 2)
+            else:
+                cv2.putText(frame, f"model: {str(current_model_path.stem)}", (400, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 127), 2)
         else:
             cv2.putText(frame, f"Premi 's' per acquisire volto neutro", (0, 20),
@@ -181,7 +187,7 @@ def main():
                     norm_ref_landmark = normalize_landmarks_eyes(reference_landmark[0]).flatten()
                     grab_next_landmark_frame = False
                     if current_action is None:
-                        current_action = "sorrisino"
+                        current_action = actions[0]
                     print("Successfully saved reference neuter image")
 
             if norm_ref_landmark is not None and current_action is not None:
@@ -192,12 +198,18 @@ def main():
                     distance = distance_func(action_reference_landmarks[current_action], normalized_landmarks)
                     cv2.putText(frame, f"distance {distance:.2f}", (int(x) - 10, int(y) - 100),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
+
                 elif ".h5" in str(current_model_path):
                     distance = model.predict(normalized_landmarks.reshape(1, -1))
                     distance = distance[:, face_row_mapping[current_action]]
                     np.set_printoptions(precision=2)
                     cv2.putText(frame, f"distance {1 - distance}", (int(x) - 10, int(y) - 100),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
+                elif callable(model):
+                    distance = model(action_reference_landmarks[current_action], normalized_landmarks)
+                    cv2.putText(frame, f"distance {distance:.2f}", (int(x) - 10, int(y) - 100),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
+
                 # for (x, y) in normalized_landmarks:
                 #     cv2.circle(frame, (int(x * 250 + 150), int(y * 250 + 150)), 1, (0, 255, 255), -1)
 
