@@ -75,7 +75,6 @@ def normalize_landmarks_eyes(landmarks):
     return rotated_landmarks
 
 
-
 def extract_landmarks(image) -> List[np.ndarray]:
     grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     rects = detector(grayscale_image, 0)
@@ -137,6 +136,14 @@ def generate_images_from_video(src_path: Path, dst_folder_path: Path):
             plt.imsave(str(dst_folder_path.joinpath(f"{subject}_{category}{int(current_frame)}_{0}.png")), frame)
         # current_frame = min(current_frame + frame_density, 100.)
         current_frame += frame_density
+
+
+def rotate_image(image_array: np.ndarray, degree: int):
+    return sk.transform.rotate(image_array, degree, preserve_range=True).astype(np.uint8)
+
+
+def horizontal_flip(image_array):
+    return image_array[:, ::-1]
 
 
 detector = dlib.get_frontal_face_detector()

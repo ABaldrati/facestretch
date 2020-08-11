@@ -11,15 +11,7 @@ from skimage import transform
 from tensorflow import keras
 
 from utils import parse_image_path, extract_landmarks, normalize_landmarks, interpolate_landmarks, \
-    normalize_landmarks_eyes
-
-
-def rotate_image(image_array: np.ndarray, degree: int):
-    return sk.transform.rotate(image_array, degree, preserve_range=True).astype(np.uint8)
-
-
-def horizontal_flip(image_array):
-    return image_array[:, ::-1]
+    normalize_landmarks_eyes, rotate_image, horizontal_flip
 
 
 def generate_neural_network_dataset(src_path: Path, rates: List[int], normalize_eyes=True):
