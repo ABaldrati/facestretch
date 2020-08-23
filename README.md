@@ -11,6 +11,8 @@
   * [Prerequisites](#prerequisites)
   * [Installation](#installation)
 * [Usage](#usage)
+  * [App Usage](#app-usage)
+  * [Training Usage](#training-usage)
 * [Authors](#authors)
 * [Acknowledgments](#acknowledgments)
 
@@ -56,9 +58,23 @@ pipenv install
 ```
 
 ## Usage
-The repo already contains the trained models described in the paper. TODO
-For running such trained models just run the file ```detect_landmarks.py```
 
+### App Usage
+The repo already contains the trained models described in the paper. TODO
+For running such trained models just run the app executing the file ```detect_landmarks.py```
+
+You can control the app through the keyboard:
+* Press **s** to save the neutral facial expression
+* Press **a** or **d** to switch the reference facial expression
+* Press **w** or **d** to switch models
+* Press **n** to display the landmarks
+* Press **c** to display the (out of scale) normalized landmakrs
+* Press **q** to exit from the app
+
+
+
+
+### Training Usage
 For training from scratch new models with a new dataset follow these steps:
 
 * Copy the dataset into the folder ```dataset_metric_learning``` in format ***subject_action.ext***
