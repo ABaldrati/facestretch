@@ -147,19 +147,18 @@ def main():
             # and draw them on the image
             key = cv2.waitKey(1)
 
-            if key == ord('c'):
+            if key == ord('n'):
                 for (x, y) in normalize_landmarks(shape):
                     cv2.circle(frame, (int(x * 250 + 150), int(y * 250 + 150)), 1, (0, 255, 255), -1)
 
                 for (x, y) in normalize_landmarks(current_shape):
                     cv2.circle(frame, (int(x * 250 + 150), int(y * 250 + 150)), 1, (255, 0, 255), -1)
 
-            rect = cv2.minAreaRect(shape)
-            ((x, y), _, angle) = rect
-            box = cv2.boxPoints(rect)
-            box = np.int0(box)
+            if key == ord("c"):
+                for (x, y) in shape:
+                    cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)
 
-            cv2.drawContours(frame, [box], 0, (0, 0, 255), 2)
+            # cv2.drawContours(frame, [box], 0, (0, 0, 255), 2)
 
             if key == ord('a') and current_action is not None:
                 current_action = actions[(actions.index(current_action) - 1) % len(actions)]
