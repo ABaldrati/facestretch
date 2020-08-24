@@ -204,7 +204,7 @@ def main():
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
                 elif callable(model):
                     distance = model(action_reference_landmarks[current_action], normalized_landmarks)
-                    cv2.putText(frame, f"distance {distance:.2f}", (int(x) - 10, int(y) - 100),
+                    cv2.putText(frame, f"distance {(10 * distance):.2f}", (int(x) - 10, int(y) - 100),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2)
 
                 # for (x, y) in normalized_landmarks:
