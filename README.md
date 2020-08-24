@@ -1,6 +1,6 @@
 # facestretch
 
-![](images/logo.png "Logo")
+![](logo/logo_large.png "Logo")
 
 
 ## Table of Contents
@@ -27,7 +27,7 @@ For more information read the [paper](https://gitlab.com/reddeadrecovery/facestr
 
 * [Python](https://www.python.org/)
 * [OpenCV](https://opencv.org/)
-* [Metric Learning](http://contrib.scikit-learn.org/metric-learn/introduction.html)
+* [Metric Learn](http://contrib.scikit-learn.org/metric-learn/introduction.html)
 * [Tensorflow](https://www.tensorflow.org/)
 * [Keras](https://keras.io/)
 
@@ -60,15 +60,15 @@ pipenv install
 ## Usage
 
 ### App Usage
-The repo already contains the trained models described in the paper. TODO
+The repo already contains the trained models described in the [paper](https://gitlab.com/reddeadrecovery/facestretch/-/blob/master/docs/facestretch.pdf).
 For running such trained models just run the app executing the file ```detect_landmarks.py```
 
 You can control the app through the keyboard:
 * Press **s** to save the neutral facial expression
 * Press **a** or **d** to switch the reference facial expression
-* Press **w** or **d** to switch models
-* Press **n** to display the landmarks
-* Press **c** to display the (out of scale) normalized landmakrs
+* Press **w** or **x** to switch models
+* Press **c** to display the landmarks
+* Press **n** to display the (out of scale) normalized landmakrs
 * Press **q** to exit from the app
 
 
@@ -77,8 +77,9 @@ You can control the app through the keyboard:
 ### Training Usage
 For training from scratch new models with a new dataset follow these steps:
 
-* Copy the dataset into the folder ```dataset_metric_learning``` in format ***subject_action.ext***
-* Split the dataset into training and validation and copy the splitted sets in ```dataset_neural_training``` and ```dataset_neural_validation``` always in format ***subject_action.ext***
+* Delete ```.gitkeep``` file from ```dataset_metric_learning```, ```dataset_neural_training``` and ```dataset_neural_validation```
+* Copy the dataset into the folder ```dataset_metric_learning``` in format ***subject_action.ext***. Remember to assign the format ***subject_neutro.ext*** to the neuter images
+* Split the dataset into training and validation, after that copy the split sets in ```dataset_neural_training``` and ```dataset_neural_validation``` always in format ***subject_action.ext***
 * Run ```reference_landmark.py```
 * Run ```train.py``` selecting the model to train
 * Run ```neural_network.py``` copying at the end the best model in the folder ```models```
@@ -86,7 +87,7 @@ For training from scratch new models with a new dataset follow these steps:
 Once trained the new models you can run ```detect_landmarks.py```
 
 Every file with extension ***.py*** is executable. If you have ```pipenv``` installed, executing them
-so that the python interpreter can find the project dependencies is as easy as running ```pipenv run $file```.
+so that the python interpreter can find the project dependencies is as easy as running ```pipenv run python $file```.
 
 Here's a brief description of each and every executable file:
 
