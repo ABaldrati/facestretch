@@ -68,7 +68,7 @@ You can control the app through the keyboard:
 * Press **a** or **d** to switch the reference facial expression
 * Press **w** or **x** to switch models
 * Press **c** to display the landmarks
-* Press **n** to display the (out of scale) normalized landmakrs
+* Press **n** to display the (out of scale) normalized landmarks
 * Press **q** to exit from the app
 
 
