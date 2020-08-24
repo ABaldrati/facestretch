@@ -21,7 +21,7 @@
 
 In ```facestretch``` we describe how we exploited the dlib’s facial landmarks in order to measure face deformationand perform an expression recognition task.  We implemented multiple approaches, mainly based on supervised and weakly-supervised metric learning, neural networks and geodesic distances on a Riemannian manifold computed a transformation of the detected landmarks. For training the metric-learning and neural networks models we built a small dataset made of eight facial expression for each subject.
 
-For more information read the paper located in the repo root. TODO
+For more information read the [paper](https://gitlab.com/reddeadrecovery/facestretch/-/blob/master/docs/facestretch.pdf) located in the docs directory.
 
 ### Built With
 
